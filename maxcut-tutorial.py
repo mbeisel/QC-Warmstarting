@@ -86,8 +86,8 @@ def objectiveFunction(input, Graph, p):
 
 p = 1
 params = np.random.default_rng().uniform(0, np.pi, size=2*p)
-Graph = GraphGenerator.genButterflyGraph()
-#Graph = GraphGenerator.genGridGraph()
+# Graph = GraphGenerator.genButterflyGraph()
+Graph = GraphGenerator.genGridGraph(5,4)
 #Graph = GraphGenerator.genMustyGraph()
 #GraphPlotter.plotGraph(Graph)
 params = minimize(objectiveFunction, params, method="COBYLA", args=(Graph, p))

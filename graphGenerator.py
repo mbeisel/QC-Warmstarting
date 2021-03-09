@@ -17,14 +17,20 @@ class GraphGenerator():
         return G
 
     @classmethod
-    def genGridGraph(cls):
+    def genGridGraph(cls, height, width):
         # Generating the grid graph
-        n = 9
-        V = np.arange(0,n,1)
-        E =[(0,1,1.0),(0,3,1.0),(1,2,1.0),(1,4,1.0),(2,5,1.0),
-            (3,4,1.0),(3,6,1.0),(4,5,1.0),(4,7,1.0),(5,8,1.0),
-            (6,7,1.0),(7,8,1.0)] 
-        
+
+        n = height*width
+        V = np.arange(0, n, 1)
+        E = []
+        for node in range(V.size):
+            #Check if node has a node above:
+            if(node % height != height-1):
+                E.append((node,node + 1, 1.0))
+                # check if graph has node to its right
+            if((n-1) - node >= height ):
+                E.append((node,node +  height, 1.0))
+
         G = nx.Graph()
         G.add_nodes_from(V)
         G.add_weighted_edges_from(E)
