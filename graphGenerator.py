@@ -49,6 +49,22 @@ class GraphGenerator():
     
         return G
 
+    @classmethod
+    def genFullyConnectedGraph(cls, n_vertices):
+        V = np.arange(0, n_vertices, 1)
+        E = []
+        for node in range(n_vertices):
+            for connection in range (node+1, n_vertices):
+                E.append((node, connection, 1.0))
+
+        G = nx.Graph()
+        G.add_nodes_from(V)
+        G.add_weighted_edges_from(E)
+
+        return G
+
+
+
 class GraphPlotter():
     @classmethod
     def plotGraph(cls, G, x=None):

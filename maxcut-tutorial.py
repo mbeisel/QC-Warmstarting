@@ -84,10 +84,11 @@ def objectiveFunction(input, Graph, p):
     costs_history.append(costs)
     return - costs
 
-p = 1
+p = 3
 params = np.random.default_rng().uniform(0, np.pi, size=2*p)
 # Graph = GraphGenerator.genButterflyGraph()
 Graph = GraphGenerator.genGridGraph(5,4)
+# Graph = GraphGenerator.genFullyConnectedGraph(20)
 #Graph = GraphGenerator.genMustyGraph()
 #GraphPlotter.plotGraph(Graph)
 params = minimize(objectiveFunction, params, method="COBYLA", args=(Graph, p))
