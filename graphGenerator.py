@@ -76,16 +76,10 @@ class GraphGenerator():
                     matrix[j,i] = matrix[i,j]
         return nx.Graph(matrix)
 
-
-
-
 def pop(list):
     firstElement = list[0]
     list = list[1:]
     return (firstElement, list)
-
-
-
 
 class GraphPlotter():
     @classmethod

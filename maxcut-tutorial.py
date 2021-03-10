@@ -16,8 +16,6 @@ from qiskit.visualization import plot_histogram
 from qiskit.test.mock import FakeBoeblingen, FakeYorktown
 import cvxgraphalgs as cvxgr
 
-
-
 # Compute the value of the cost function
 def cost_function_C(x,G):
     
@@ -88,7 +86,6 @@ def plotCircuit(G, approximation_List, params, p, backend = None):
         tcircuit.draw(output='mpl')
         plt.show()
 
-
 costs_history = []
 def objectiveFunction(input, Graph, approximation_List, p):
     global costs_history
@@ -97,33 +94,24 @@ def objectiveFunction(input, Graph, approximation_List, p):
     costs_history.append(costs)
     return - costs
 
+def continuousGWsolve(graph):
+    # compute continuous valued, [0,1]-normalized GW solution
+    adjacency = nx.linalg.adjacency_matrix(graph)
+    adjacency = adjacency.toarray()
+    solution = _solve_cut_vector_program(adjacency)
 
-p = 1
-params = np.random.default_rng().uniform(0, np.pi, size=2*p)
-# graph = GraphGenerator.genButterflyGraph()
-# graph = GraphGenerator.genGridGraph(4,4)
-graph = GraphGenerator.genFullyConnectedGraph(10)
-# graph = GraphGenerator.genMustyGraph()
-# graph = GraphGenerator.genRandomGraph(12,20)
-GraphPlotter.plotGraph(graph)
+    size = len(solution)
+    partition = np.random.default_rng().uniform(size=size)
+    partition_norm = np.linalg.norm(partition)
+    partition = 1 / partition_norm * partition
+    projections = solution.T @ partition
 
-# for continous GW
-# adjacency = nx.linalg.adjacency_matrix(graph)
-# adjacency = adjacency.toarray()
-# solution = _solve_cut_vector_program(adjacency)
-# # solution = 1/np.linalg.norm(solution) * solution
-#
-# size = len(solution)
-# partition = np.random.default_rng().uniform(size=size)
-# partition_norm = np.linalg.norm(partition)
-# partition = 1/partition_norm * partition
-# projections = solution.T @ partition
-# positive_projections = []
-# for projection in range(len(projections)):
-#     positive_projections.append((projections[projection]+1)/2 )
+    # normalize [-1,1] -> [0,1]
+    positive_projections = (projections + 1) / 2
+    return list(positive_projections)
 
-def epsilonFunction(cutList, epsilon):
-    # approximation_list = positive_projections
+def epsilonFunction(cutList, epsilon=0.25):
+    # increase distance of continuous values from exact 0 and 1
     for i in range(len(cutList)):
         if(cutList[i] > 1-epsilon):
             cutList[i] = 1-epsilon
@@ -131,60 +119,83 @@ def epsilonFunction(cutList, epsilon):
             cutList[i] = epsilon
     return cutList
 
-GW_cuts = []
-n_GW_cuts = 30
-for i in range(n_GW_cuts):
-    approximation = cvxgr.algorithms.goemans_williamson_weighted(graph)
-    approximation_list = []
-    for n in range(len(approximation.vertices)):
-        if(n in approximation.left):
-            approximation_list.append(0)
+def bestGWcuts(graph, n_GW_cuts, n_best, continuous=False):
+    # returns n_best best cuts out of n_GW_cuts to be computed
+    if n_best > n_GW_cuts:
+        raise Exception("n_best has to be less or equal to n_GW_cuts")
+
+    GW_cuts = []
+    for i in range(n_GW_cuts):
+
+        if continuous:
+            approximation_list = continuousGWsolve(graph)
         else:
-            approximation_list.append(1)
-    GW_cuts.append([epsilonFunction(approximation_list, 0.25), cost_function_C(approximation_list, graph)])
-print(GW_cuts)
+            approximation = cvxgr.algorithms.goemans_williamson_weighted(graph)
+            # compute binary representation of cut for discrete solution
+            approximation_list = []
+            for n in range(len(approximation.vertices)):
+                if(n in approximation.left):
+                    approximation_list.append(0)
+                else:
+                    approximation_list.append(1)
 
-NP_GW_cuts = np.array(GW_cuts)
-NP_GW_cuts = NP_GW_cuts[NP_GW_cuts[:,1].argsort()]
-NP_GW_cuts = NP_GW_cuts[n_GW_cuts-5:]
-print(NP_GW_cuts)
+        GW_cuts.append([epsilonFunction(approximation_list, 0.25), cost_function_C(approximation_list, graph)])
 
+    GW_cuts = np.array(GW_cuts)
+    GW_cuts = GW_cuts[GW_cuts[:,1].argsort()]
+    GW_cuts = GW_cuts[n_GW_cuts-n_best:]
+    return GW_cuts
 
-warmstart = []
-coldstart = []
-# options=({"maxiter": 10}) to limit optimizer iterations
-for i in range(5):
-    for j in range(2):
-        params = np.random.default_rng().uniform(0, np.pi, size=2*p)
-        params_warm_optimized = minimize(objectiveFunction, params, method="COBYLA", args=(graph, NP_GW_cuts[i,0],p))
-        params_cold_optimized = minimize(objectiveFunction, params, method="COBYLA", args=(graph, None , p))
-        warmstart.append(objectiveFunction(params_warm_optimized.x, graph, NP_GW_cuts[i,0], p))
-        coldstart.append(objectiveFunction(params_cold_optimized.x, graph, None, p))
-    print(i)
+def compareWarmStartEnergy(graph, p_range):
+    warm_means = []
+    cold_means = []
+    warm_dev = []
+    cold_dev = []
 
+    bestCuts = bestGWcuts(graph, 15, 5, continuous=False)
+    print(bestCuts)
 
-print(warmstart)
-print(np.mean(warmstart))
-print(coldstart)
-print(np.mean(coldstart))
+    for p in p_range:
+        warmstart = []
+        coldstart = []
+        optimizer_options = None #({"maxiter": 10})# to limit optimizer iterations
+        for i in range(5):
+            for j in range(1):
+                params = np.random.default_rng().uniform(0, np.pi, size=2*p)
+                params_warm_optimized = minimize(objectiveFunction, params, method="COBYLA", args=(graph, bestCuts[i,0],p), options=optimizer_options)
+                params_cold_optimized = minimize(objectiveFunction, params, method="COBYLA", args=(graph, None, p), options=optimizer_options)
+                warmstart.append(objectiveFunction(params_warm_optimized.x, graph, bestCuts[i,0], p))
+                coldstart.append(objectiveFunction(params_cold_optimized.x, graph, None, p))
+            print("{:.2f}%".format(100*(i+1+5*(p-1))//(len(p_range)*5)))
 
+        warm_means.append(np.mean(warmstart))
+        cold_means.append(np.mean(coldstart))
+        warm_dev.append(np.std(warmstart))
+        cold_dev.append(np.std(coldstart))
 
+    print(warmstart)
+    print(coldstart)
+    print([warm_means, cold_means])
+    plotline, capline, barlinecols = plt.errorbar(p_range, cold_means, cold_dev, linestyle="None", marker="x", color="b")
+    [(bar.set_alpha(0.5), bar.set_label("coldstarted")) for bar in barlinecols]
+    plotline, capline, barlinecols = plt.errorbar(p_range, warm_means, warm_dev, linestyle="None", marker="x", color="r")
+    [(bar.set_alpha(0.5), bar.set_label("warmstarted")) for bar in barlinecols]
+    plt.legend(loc="best")
+    plt.show()
 
-# warmstart = []
-# coldstart = []
-# for x in range(100):
-#     params = np.random.default_rng().uniform(0, np.pi, size=2*p)
-#     warmstart.append(objectiveFunction(params, graph, approximation_list, p))
-#     coldstart.append(objectiveFunction(params, graph, None, p))
+p = 1
+params = np.random.default_rng().uniform(0, np.pi, size=2*p)
+# graph = GraphGenerator.genButterflyGraph()
+# graph = GraphGenerator.genGridGraph(4,4)
+graph = GraphGenerator.genFullyConnectedGraph(10)
+# graph = GraphGenerator.genMustyGraph()
+# graph = GraphGenerator.genRandomGraph(14,40)
+GraphPlotter.plotGraph(graph)
 
-# print(warmstart)
-# print(np.mean(warmstart))
-# print(coldstart)
-# print(np.mean(coldstart))
-
+compareWarmStartEnergy(graph, [1,2])
 
 # print(params.x)
 # plotCircuit(graph, params.x, p, FakeYorktown())
 # plotSolution(graph, params.x, p)
-#plt.plot(costs_history)
-#plt.show()
+# plt.plot(costs_history)
+# plt.show()
