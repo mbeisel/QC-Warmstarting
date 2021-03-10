@@ -63,6 +63,28 @@ class GraphGenerator():
 
         return G
 
+    @classmethod
+    def genRandomGraph(cls, n_vertices, n_edges):
+        matrix = np.zeros((n_vertices, n_vertices))
+        edges = np.zeros((n_vertices*(n_vertices-1))//2)
+        indices = np.random.choice(range(len(edges)), n_edges, replace=False)
+        edges[indices] = 1  #add weights here
+        for i in range(1, n_vertices):
+            for j in range(n_vertices -1):
+                if i > j:
+                    matrix[i,j], edges = pop(edges)
+                    matrix[j,i] = matrix[i,j]
+        return nx.Graph(matrix)
+
+
+
+
+def pop(list):
+    firstElement = list[0]
+    list = list[1:]
+    return (firstElement, list)
+
+
 
 
 class GraphPlotter():
