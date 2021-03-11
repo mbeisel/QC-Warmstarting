@@ -12,6 +12,7 @@ class QAOACircuitGenerator():
 
 
         if(initial):
+            initial = initial[::-1]
             for qubits in range(len(V)):
                 QAOA.ry(2*np.arcsin(np.sqrt(initial[qubits])),qubits)
         else:
