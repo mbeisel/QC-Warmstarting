@@ -57,7 +57,6 @@ class GraphGenerator():
         E = []
         for node in range(n_vertices):
             for connection in range (node+1, n_vertices):
-                print(np.random.randint(weightRange[1]+1 - weightRange[0]) + weightRange[0])
                 E.append((node, connection, np.random.randint(weightRange[1]+1 - weightRange[0]) + weightRange[0]))
 
         G = nx.Graph()
