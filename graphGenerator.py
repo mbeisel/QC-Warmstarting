@@ -64,15 +64,19 @@ class GraphGenerator():
         return G
 
     @classmethod
-    def genRandomGraph(cls, n_vertices, n_edges):
+    def genRandomGraph(cls, n_vertices, n_edges, randomEdgeWeights=True):
         matrix = np.zeros((n_vertices, n_vertices))
         edges = np.zeros((n_vertices*(n_vertices-1))//2)
         indices = np.random.choice(range(len(edges)), n_edges, replace=False)
         edges[indices] = 1  #add weights here
+        weights = list(np.random.choice(range(-10, 11), len(edges)))
+
         for i in range(1, n_vertices):
             for j in range(n_vertices -1):
                 if i > j:
+                    weight, weights = pop(weights)
                     matrix[i,j], edges = pop(edges)
+                    matrix[i,j] *= weight
                     matrix[j,i] = matrix[i,j]
         return nx.Graph(matrix)
 
@@ -83,7 +87,7 @@ def pop(list):
 
 class GraphPlotter():
     @classmethod
-    def plotGraph(cls, G, x=None):
+    def plotGraph(cls, G, printWeights=True, x=None):
         if not x:
             colors = ['r' for node in G.nodes()]
         else:
@@ -91,4 +95,7 @@ class GraphPlotter():
         default_axes = plt.axes(frameon=True)
         pos          = nx.spring_layout(G)
         nx.draw_networkx(G, node_color=colors, node_size=600, alpha=1, ax=default_axes, pos=pos)
+        if printWeights:
+            labels = nx.get_edge_attributes(G,'weight')
+            nx.draw_networkx_edge_labels(G,pos,edge_labels=labels)
         plt.show()
