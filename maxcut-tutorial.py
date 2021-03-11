@@ -15,6 +15,7 @@ from qiskit.tools.monitor import job_monitor
 from qiskit.visualization import plot_histogram
 from qiskit.test.mock import FakeBoeblingen, FakeYorktown
 import cvxgraphalgs as cvxgr
+from numpy import dtype
 
 # Compute the value of the cost function
 def cost_function_C(x,G):
@@ -123,7 +124,7 @@ def swapSign(list):
     return [ -i for i in list ]
 
 
-def bestGWcuts(graph, n_GW_cuts, n_best, continuous=False):
+def bestGWcuts(graph, n_GW_cuts, n_best, continuous=False, epsilon=0.25):
     # returns n_best best cuts out of n_GW_cuts to be computed
     if n_best > n_GW_cuts:
         raise Exception("n_best has to be less or equal to n_GW_cuts")
@@ -143,9 +144,9 @@ def bestGWcuts(graph, n_GW_cuts, n_best, continuous=False):
                 else:
                     approximation_list.append(1)
 
-        GW_cuts.append([epsilonFunction(approximation_list, 0.25), cost_function_C(approximation_list, graph)])
+        GW_cuts.append([epsilonFunction(approximation_list, epsilon=epsilon), cost_function_C(approximation_list, graph)])
 
-    GW_cuts = np.array(GW_cuts)
+    GW_cuts = np.array(GW_cuts, dtype=object)
     GW_cuts = GW_cuts[GW_cuts[:,1].argsort()]
     GW_cuts = GW_cuts[n_GW_cuts-n_best:]
     return GW_cuts
@@ -159,6 +160,7 @@ def compareWarmStartEnergy(graph, p_range):
     bestCuts = bestGWcuts(graph, 15, 5, continuous=False)
     print(bestCuts)
 
+    p_range = list(p_range)
     for p in p_range:
         warmstart = []
         coldstart = []
@@ -170,7 +172,7 @@ def compareWarmStartEnergy(graph, p_range):
                 params_cold_optimized = minimize(objectiveFunction, params, method="COBYLA", args=(graph, None, p), options=optimizer_options)
                 warmstart.append(objectiveFunction(params_warm_optimized.x, graph, bestCuts[i,0], p))
                 coldstart.append(objectiveFunction(params_cold_optimized.x, graph, None, p))
-            print("{:.2f}%".format(100*(i+1+5*(p-1))//(len(p_range)*5)))
+            print("{:.2f}%".format(100*(i+1+5*p_range.index(p))//(len(p_range)*5)))
 
         warm_means.append(np.mean(warmstart))
         cold_means.append(np.mean(coldstart))
@@ -184,19 +186,52 @@ def compareWarmStartEnergy(graph, p_range):
     [(bar.set_alpha(0.5), bar.set_label("coldstarted")) for bar in barlinecols]
     plotline, capline, barlinecols = plt.errorbar(p_range, swapSign(warm_means), warm_dev, linestyle="None", marker="x", color="r")
     [(bar.set_alpha(0.5), bar.set_label("warmstarted")) for bar in barlinecols]
+    plt.legend(loc="best"), plt.xlabel("p"), plt.ylabel("Energy"), plt.title("Warm-started QAOA comparison")
     plt.legend(loc="best")
+    plt.show()
+
+def compareEpsilon(graph, epsilon_range):
+    warm_means = []
+    warm_dev = []
+
+    _bestCuts = bestGWcuts(graph, 15, 5, continuous=False, epsilon=0) # get raw solutions using epsilon = 0
+    print(_bestCuts)
+    p = 1
+
+    epsilon_range = list(epsilon_range)
+    for eps in epsilon_range:
+        warmstart = []
+        coldstart = []
+        bestCuts = np.array([[epsilonFunction(cut[0], eps), cut[1]] for cut in _bestCuts], dtype=object)
+        optimizer_options = None #({"maxiter": 10})# to limit optimizer iterations
+        for i in range(5):
+            for j in range(1):
+                params = np.random.default_rng().uniform(0, np.pi, size=2*p)
+                params_warm_optimized = minimize(objectiveFunction, params, method="COBYLA", args=(graph, bestCuts[i,0],p), options=optimizer_options)
+                warmstart.append(objectiveFunction(params_warm_optimized.x, graph, bestCuts[i,0], p))
+            print("{:.2f}%".format(100*(i+1+5*epsilon_range.index(eps))//(len(epsilon_range)*5)))
+
+        warm_means.append(np.mean(warmstart))
+        warm_dev.append(np.std(warmstart))
+
+    print(warmstart)
+    print(warm_means)
+    plotline, capline, barlinecols = plt.errorbar(epsilon_range, swapSign(warm_means), warm_dev, linestyle="None", marker="x", color="r")
+    [(bar.set_alpha(0.5), bar.set_label("warmstarted")) for bar in barlinecols]
+    plt.legend(loc="best"), plt.xlabel("epsilon"), plt.ylabel("Energy"), plt.title("Warm-started QAOA comparison")
     plt.show()
 
 p = 1
 params = np.random.default_rng().uniform(0, np.pi, size=2*p)
 # graph = GraphGenerator.genButterflyGraph()
 # graph = GraphGenerator.genGridGraph(4,4)
-graph = GraphGenerator.genFullyConnectedGraph(10)
+graph = GraphGenerator.genFullyConnectedGraph(14)
 # graph = GraphGenerator.genMustyGraph()
 # graph = GraphGenerator.genRandomGraph(14,40)
 GraphPlotter.plotGraph(graph)
 
-compareWarmStartEnergy(graph, [1,2])
+#compareWarmStartEnergy(graph, [1,3])
+compareEpsilon(graph, np.arange(0,0.35,0.05))
 
 # print(params.x)
 # plotCircuit(graph, params.x, p, FakeYorktown())
