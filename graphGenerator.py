@@ -50,12 +50,15 @@ class GraphGenerator():
         return G
 
     @classmethod
-    def genFullyConnectedGraph(cls, n_vertices):
+    def genFullyConnectedGraph(cls, n_vertices, weightRange=None):
+        if weightRange is None:
+            weightRange = [-10, 10]
         V = np.arange(0, n_vertices, 1)
         E = []
         for node in range(n_vertices):
             for connection in range (node+1, n_vertices):
-                E.append((node, connection, 1.0))
+                print(np.random.randint(weightRange[1]+1 - weightRange[0]) + weightRange[0])
+                E.append((node, connection, np.random.randint(weightRange[1]+1 - weightRange[0]) + weightRange[0]))
 
         G = nx.Graph()
         G.add_nodes_from(V)
