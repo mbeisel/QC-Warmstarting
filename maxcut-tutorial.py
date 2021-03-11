@@ -119,6 +119,10 @@ def epsilonFunction(cutList, epsilon=0.25):
             cutList[i] = epsilon
     return cutList
 
+def swapSign(list):
+    return [ -i for i in list ]
+
+
 def bestGWcuts(graph, n_GW_cuts, n_best, continuous=False):
     # returns n_best best cuts out of n_GW_cuts to be computed
     if n_best > n_GW_cuts:
@@ -176,9 +180,9 @@ def compareWarmStartEnergy(graph, p_range):
     print(warmstart)
     print(coldstart)
     print([warm_means, cold_means])
-    plotline, capline, barlinecols = plt.errorbar(p_range, cold_means, cold_dev, linestyle="None", marker="x", color="b")
+    plotline, capline, barlinecols = plt.errorbar(p_range, swapSign(cold_means), cold_dev, linestyle="None", marker="x", color="b")
     [(bar.set_alpha(0.5), bar.set_label("coldstarted")) for bar in barlinecols]
-    plotline, capline, barlinecols = plt.errorbar(p_range, warm_means, warm_dev, linestyle="None", marker="x", color="r")
+    plotline, capline, barlinecols = plt.errorbar(p_range, swapSign(warm_means), warm_dev, linestyle="None", marker="x", color="r")
     [(bar.set_alpha(0.5), bar.set_label("warmstarted")) for bar in barlinecols]
     plt.legend(loc="best")
     plt.show()
