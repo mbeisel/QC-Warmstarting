@@ -50,9 +50,7 @@ class GraphGenerator():
         return G
 
     @classmethod
-    def genFullyConnectedGraph(cls, n_vertices, weightRange=None):
-        if weightRange is None:
-            weightRange = [-10, 10]
+    def genFullyConnectedGraph(cls, n_vertices, weightRange=(-10, 10)):
         V = np.arange(0, n_vertices, 1)
         E = []
         for node in range(n_vertices):
@@ -66,12 +64,12 @@ class GraphGenerator():
         return G
 
     @classmethod
-    def genRandomGraph(cls, n_vertices, n_edges, randomEdgeWeights=True):
+    def genRandomGraph(cls, n_vertices, n_edges, weightRange=(-10, 10)):
         matrix = np.zeros((n_vertices, n_vertices))
         edges = np.zeros((n_vertices*(n_vertices-1))//2)
         indices = np.random.choice(range(len(edges)), n_edges, replace=False)
         edges[indices] = 1  #add weights here
-        weights = list(np.random.choice(range(-10, 11), len(edges)))
+        weights = list(np.random.choice(range(weightRange[0], weightRange[1]+1), len(edges)))
 
         for i in range(1, n_vertices):
             for j in range(n_vertices -1):
