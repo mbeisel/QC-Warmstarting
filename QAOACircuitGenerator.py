@@ -19,9 +19,8 @@ class QAOACircuitGenerator():
             # apply the layer of Hadamard gates to all qubits
             QAOA.h(range(len(V)))
 
-        QAOA.barrier()
-        
         for iter in range(p):
+            QAOA.barrier()
             # apply the Ising type gates with angle gamma along the edges in E
             for edge in E:
                 k = edge[0]
@@ -35,8 +34,8 @@ class QAOACircuitGenerator():
             QAOA.barrier()
 
             if(initial):
+                # QAOA.rx(2*params[2*iter+1], range(len(V)))
                 for qubits in range(len(V)):
-
                     QAOA.ry(-2*np.arcsin(np.sqrt(initial[qubits])),qubits)
                     QAOA.rz(-2*params[2*iter+1],qubits)
                     QAOA.ry(2*np.arcsin(np.sqrt(initial[qubits])),qubits)

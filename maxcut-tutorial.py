@@ -39,7 +39,7 @@ def cost_function_C(x,G):
 def runQaoa(input, Graph, approximation_List, p):
     # run on local simulator
     backend = Aer.get_backend("qasm_simulator")
-    shots = 1000
+    shots = 2000
     QAOA = QAOACircuitGenerator.genQAOAcircuit(input, Graph,approximation_List, p)
     TQAOA = transpile(QAOA, backend)
     qobj = assemble(TQAOA)
@@ -49,7 +49,6 @@ def runQaoa(input, Graph, approximation_List, p):
 def compute_costs(QAOA_results, G):
     # Evaluate the data from the simulator
     counts = QAOA_results.get_counts()
-    
     avr_C       = 0
     max_C       = [0,0]
     
@@ -66,16 +65,17 @@ def compute_costs(QAOA_results, G):
         if( max_C[1] < tmp_eng):
             max_C[0] = sample
             max_C[1] = tmp_eng
-                    
+
+
     M1_sampled   = avr_C/np.sum(list(counts.values()))
     
     # print('The sampled mean value is M1_sampled = %.02f' % (M1_sampled))
     # print('The approximate solution is x* = %s with C(x*) = %d' % (max_C[0],max_C[1]))
-    return M1_sampled, max_C[0]
+    return M1_sampled, max_C[0], max_C[1]
 
 def plotSolution(G, params, p):
     results = runQaoa(params, G, p)
-    costs, solution = compute_costs(results, G)
+    costs, solution, _ = compute_costs(results, G)
     GraphPlotter.plotGraph(G, solution)
 
 def plotCircuit(G, approximation_List, params, p, backend = None):
@@ -90,12 +90,20 @@ def plotCircuit(G, approximation_List, params, p, backend = None):
         plt.show()
 
 costs_history = []
+
 def objectiveFunction(input, Graph, approximation_List, p):
     global costs_history
     results = runQaoa(input, Graph, approximation_List, p)
-    costs, _ = compute_costs(results, Graph)
+    costs, _, _ = compute_costs(results, Graph)
     costs_history.append(costs)
     return - costs
+
+def objectiveFunctionBest(input, Graph, approximation_List, p):
+    results = runQaoa(input, Graph, approximation_List, p)
+    _, _, best = compute_costs(results, Graph)
+    return best
+
+
 
 def continuousGWsolve(graph):
     # compute continuous valued, [0,1]-normalized GW solution
@@ -153,6 +161,7 @@ def bestGWcuts(graph, n_GW_cuts, n_best, continuous=False, epsilon=0.25):
     GW_cuts = GW_cuts[n_GW_cuts-n_best:]
     return GW_cuts
 
+# Gridsearch for p = 1
 def gridSearch(objective_fun, Graph, approximation_List, p, step_size=0.2, show_plot=False):
     a_gamma         = np.arange(0, np.pi, step_size)
     a_beta          = np.arange(0, np.pi, step_size)
@@ -187,35 +196,45 @@ def compareWarmStartEnergy(graph, p_range):
     cold_means = []
     warm_dev = []
     cold_dev = []
+    warm_max = []
+    cold_max = []
 
-    bestCuts = bestGWcuts(graph, 15, 5, continuous=False)
+    bestCuts = bestGWcuts(graph, 8, 5, continuous=False, epsilon=0)
+    bestCuts = np.array([[epsilonFunction(cut[0], 0.25), cut[1]] for cut in deepcopy(bestCuts)], dtype=object)
     print(bestCuts)
 
     p_range = list(p_range)
     for p in p_range:
         warmstart = []
         coldstart = []
+
         optimizer_options = None #({"maxiter": 10})# to limit optimizer iterations
-        for i in range(5):
+        for i in range(3,4):
+
+            # bestCutsParams = [gridSearch(objectiveFunction, graph, bestCuts[i,0], p)[0] for i in range(len(bestCuts))]
             for j in range(1):
                 params = np.random.default_rng().uniform(0, np.pi, size=2*p)
                 params_warm_optimized = minimize(objectiveFunction, params, method="COBYLA", args=(graph, bestCuts[i,0],p), options=optimizer_options)
+                # plotCircuit(graph, bestCuts[i,0], params_warm_optimized.x, p,)
                 params_cold_optimized = minimize(objectiveFunction, params, method="COBYLA", args=(graph, None, p), options=optimizer_options)
-                warmstart.append(objectiveFunction(params_warm_optimized.x, graph, bestCuts[i,0], p))
-                coldstart.append(objectiveFunction(params_cold_optimized.x, graph, None, p))
+                warmstart.append(objectiveFunctionBest(params_warm_optimized.x, graph, bestCuts[i,0], p))
+                coldstart.append(objectiveFunctionBest(params_cold_optimized.x, graph, None, p))
             print("{:.2f}%".format(100*(i+1+5*p_range.index(p))/(len(p_range)*5)))
 
         warm_means.append(np.mean(warmstart))
         cold_means.append(np.mean(coldstart))
         warm_dev.append(np.std(warmstart))
         cold_dev.append(np.std(coldstart))
+        warm_max.append(np.min(warmstart))
+        cold_max.append(np.min(coldstart))
+        print(warmstart)
+        print(coldstart)
 
-    print(warmstart)
-    print(coldstart)
     print([warm_means, cold_means])
-    plotline, capline, barlinecols = plt.errorbar(p_range, swapSign(cold_means), cold_dev, linestyle="None", marker="x", color="b")
+    print([warm_max, cold_max])
+    plotline, capline, barlinecols = plt.errorbar(p_range, cold_means, cold_dev, linestyle="None", marker="x", color="b")
     [(bar.set_alpha(0.5), bar.set_label("coldstarted")) for bar in barlinecols]
-    plotline, capline, barlinecols = plt.errorbar(p_range, swapSign(warm_means), warm_dev, linestyle="None", marker="x", color="r")
+    plotline, capline, barlinecols = plt.errorbar(p_range, warm_means, warm_dev, linestyle="None", marker="x", color="r")
     [(bar.set_alpha(0.5), bar.set_label("warmstarted")) for bar in barlinecols]
     plt.legend(loc="best"), plt.xlabel("p"), plt.ylabel("Energy"), plt.title("Warm-started QAOA comparison")
     plt.legend(loc="best")
@@ -238,7 +257,7 @@ def compareEpsilon(graph, epsilon_range):
         optimizer_options = ({"rhobeg": 0.1, "disp": False})#, "maxiter": 10})# to limit optimizer iterations
         for i in range(-1,0):
             params = bestCutsParams[i]
-            for j in range(1):
+            for j in range(5):
                 #params = np.random.default_rng().normal(0, np.pi, size=2*p)
                 params_warm_optimized = minimize(objectiveFunction, params, method="COBYLA", args=(graph, bestCuts[i,0], p), options=optimizer_options)
                 warmstart.append(objectiveFunction(params_warm_optimized.x, graph, bestCuts[i,0], p))
@@ -259,13 +278,13 @@ p = 1
 params = np.random.default_rng().uniform(0, np.pi, size=2*p)
 # graph = GraphGenerator.genButterflyGraph()
 # graph = GraphGenerator.genGridGraph(4,4)
-graph = GraphGenerator.genFullyConnectedGraph(14)
+# graph = GraphGenerator.genFullyConnectedGraph(19, [-5,10])
 # graph = GraphGenerator.genMustyGraph()
-# graph = GraphGenerator.genRandomGraph(14,40)
+graph = GraphGenerator.genRandomGraph(22,177)
 GraphPlotter.plotGraph(graph)
 
-#compareWarmStartEnergy(graph, [1,3])
-compareEpsilon(graph, np.arange(0.0,0.51,0.05))
+compareWarmStartEnergy(graph, [1,2])
+# compareEpsilon(graph, np.arange(0.0,0.51,0.05))
 
 # print(params.x)
 # plotCircuit(graph, params.x, p, FakeYorktown())
