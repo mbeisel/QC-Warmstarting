@@ -244,24 +244,23 @@ def compareEpsilon(graph, epsilon_range):
     warm_means = []
     warm_dev = []
 
-    RawBestCuts = bestGWcuts(graph, 1, 1, continuous=False, epsilon=0) # get raw solutions using epsilon = 0
+    RawBestCuts = bestGWcuts(graph, 15, 5, continuous=False, epsilon=0) # get raw solutions using epsilon = 0
     print(RawBestCuts)
     p = 1
 
     epsilon_range = list(epsilon_range)
     for eps in epsilon_range:
         warmstart = []
-        coldstart = []
         bestCuts = np.array([[epsilonFunction(cut[0], eps), cut[1]] for cut in deepcopy(RawBestCuts)], dtype=object)
-        bestCutsParams = [gridSearch(objectiveFunction, graph, bestCuts[i,0], p)[0] for i in range(len(bestCuts))]
-        optimizer_options = ({"rhobeg": 0.1, "disp": False})#, "maxiter": 10})# to limit optimizer iterations
-        for i in range(-1,0):
-            params = bestCutsParams[i]
-            for j in range(5):
-                #params = np.random.default_rng().normal(0, np.pi, size=2*p)
-                params_warm_optimized = minimize(objectiveFunction, params, method="COBYLA", args=(graph, bestCuts[i,0], p), options=optimizer_options)
-                warmstart.append(objectiveFunction(params_warm_optimized.x, graph, bestCuts[i,0], p))
-                print("params optimized {} -> {}".format(params, params_warm_optimized.x))
+        #bestCutsParams = [gridSearch(objectiveFunction, graph, bestCuts[i,0], p, step_size=0.2, show_plot=False)[0] for i in range(1)]
+        optimizer_options = None # ({"rhobeg": 1.0, "disp": False})#, "maxiter": 10})# to limit optimizer iterations
+        for i in range(1):
+            print(bestCuts[i])
+            for j in range(1):
+                params = np.random.default_rng().uniform(0, np.pi, size=2*p)
+                params_warm_optimized = minimize(objectiveFunction, params, method="Powell", args=(graph, bestCuts[i,0], p), options=optimizer_options)
+                warmstart.append(objectiveFunctionBest(params_warm_optimized.x, graph, bestCuts[i,0], p))
+                print("params optimized: {} -> {}, energy measured: {}".format(params, params_warm_optimized.x, warmstart[-1]))
             print("{:.2f}%".format(100*(i+1+5*epsilon_range.index(eps))/(len(epsilon_range)*5)))
 
         warm_means.append(np.mean(warmstart))
@@ -269,13 +268,11 @@ def compareEpsilon(graph, epsilon_range):
 
     print(warmstart)
     print(warm_means)
-    plotline, capline, barlinecols = plt.errorbar(epsilon_range, swapSign(warm_means), warm_dev, linestyle="None", marker="x", color="r")
+    plotline, capline, barlinecols = plt.errorbar(epsilon_range, warm_means, warm_dev, linestyle="None", marker="x", color="r")
     [(bar.set_alpha(0.5), bar.set_label("warmstarted")) for bar in barlinecols]
     plt.legend(loc="best"), plt.xlabel("epsilon"), plt.ylabel("Energy"), plt.title("Warm-started QAOA comparison")
     plt.show()
 
-p = 1
-params = np.random.default_rng().uniform(0, np.pi, size=2*p)
 # graph = GraphGenerator.genButterflyGraph()
 # graph = GraphGenerator.genGridGraph(4,4)
 # graph = GraphGenerator.genFullyConnectedGraph(19, [-5,10])
