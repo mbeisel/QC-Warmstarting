@@ -87,7 +87,7 @@ def pop(list):
 
 class GraphPlotter():
     @classmethod
-    def plotGraph(cls, G, printWeights=True, x=None):
+    def plotGraph(cls, G, printWeights=True, x=None, fname=None):
         if not x:
             colors = ['r' for node in G.nodes()]
         else:
@@ -98,4 +98,9 @@ class GraphPlotter():
         if printWeights:
             labels = nx.get_edge_attributes(G,'weight')
             nx.draw_networkx_edge_labels(G,pos,edge_labels=labels)
-        plt.show()
+
+        if fname:
+            plt.savefig(fname, format="png")
+            plt.close()
+        else:
+            plt.show()
