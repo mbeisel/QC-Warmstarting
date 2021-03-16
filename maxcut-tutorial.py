@@ -18,7 +18,7 @@ from qiskit.test.mock import FakeBoeblingen, FakeYorktown
 import cvxgraphalgs as cvxgr
 from numpy import dtype
 from copy import deepcopy
-
+import bitarray
 
 
 # Compute the value of the cost function
@@ -54,6 +54,23 @@ def compute_costs(QAOA_results, G):
     avr_C       = 0
     max_C       = [0,0,0]
 
+
+    #get the 5 most common solutions
+    z = zip(list(counts.keys()), list(counts.values()))
+    z = list(z)
+
+    def takeSecond(elem):
+        return elem[1]
+    z.sort(key=takeSecond, reverse=True)
+    z = z[:5]
+
+    #get highest cost result of top5
+    top5Costs = np.array([ cost_function_C(bitarray.bitarray(x), G) for x,_ in z])
+    max_C[1] = np.amax(top5Costs)
+    max_C[0] = bitarray.bitarray(z[np.where(top5Costs == max_C[1])[0][0]][0])
+
+
+
     for sample in list(counts.keys()):
     
         # use sampled bit string x to compute C(x)
@@ -64,11 +81,20 @@ def compute_costs(QAOA_results, G):
         # compute the expectation value and energy distribution
         avr_C     = avr_C    + counts[sample]*tmp_eng
 
+
+
+        #
+        # mostcommonCounts = list(counts.values())
+        # mostcommonCounts.sort(reverse=True)
+        # print(mostcommonCounts[:5])
+
+
+
         # save most common string
-        if ( max_C[2] < counts[sample]):
-            max_C[2] = counts[sample]
-            max_C[0] = sample
-            max_C[1] = tmp_eng
+        # if ( max_C[2] < counts[sample]):
+        #     max_C[2] = counts[sample]
+        #     max_C[0] = sample
+        #     max_C[1] = tmp_eng
 
         # save best bit string
         # if( max_C[1] < tmp_eng):
@@ -372,7 +398,7 @@ def compareEpsilon(graph, epsilon_range):
 # graph = GraphGenerator.genGridGraph(4,4)
 # graph = GraphGenerator.genFullyConnectedGraph(19, [-5,10])
 # graph = GraphGenerator.genMustyGraph()
-graph = GraphGenerator.genRandomGraph(11,55)
+graph = GraphGenerator.genRandomGraph(19,111)
 # GraphPlotter.plotGraph(graph)
 
 # compareWarmStartEnergy(graph, [1,2])
