@@ -19,6 +19,7 @@ import cvxgraphalgs as cvxgr
 from numpy import dtype
 from copy import deepcopy
 import bitarray
+import time
 
 from datetime import datetime
 
@@ -42,7 +43,7 @@ def cost_function_C(x,G):
 def runQaoa(input, Graph, approximation_List, p):
     # run on local simulator
     backend = Aer.get_backend("qasm_simulator")
-    shots = 10000
+    shots = 20000
     QAOA = QAOACircuitGenerator.genQAOAcircuit(input, Graph,approximation_List, p)
     TQAOA = transpile(QAOA, backend)
     qobj = assemble(TQAOA)
@@ -52,60 +53,28 @@ def runQaoa(input, Graph, approximation_List, p):
 def compute_costs(QAOA_results, G):
     # Evaluate the data from the simulator
     counts = QAOA_results.get_counts()
-    avr_C       = 0
     max_C       = [0,0,0]
 
 
-    #get the 5 most common solutions
     z = zip(list(counts.keys()), list(counts.values()))
     z = list(z)
 
-    def takeSecond(elem):
-        return elem[1]
-    z.sort(key=takeSecond, reverse=True)
-    z = z[:5]
-
-    #get highest cost result of top5
-    top5Costs = np.array([ cost_function_C(bitarray.bitarray(x), G) for x,_ in z])
-    max_C[1] = np.amax(top5Costs)
-    max_C[0] = bitarray.bitarray(z[np.where(top5Costs == max_C[1])[0][0]][0])
+    allCosts = np.array([ cost_function_C(bitarray.bitarray(x), G) for x,_ in z])
+    allCostsWeightedByNumberOfOccurances = np.array([allCosts[i] * z[i][1] for i in range(len(z))])
 
 
-
-    for sample in list(counts.keys()):
-    
-        # use sampled bit string x to compute C(x)
-        x         = [int(num) for num in list(sample)]
-
-        tmp_eng   = cost_function_C(x,G)
-
-        # compute the expectation value and energy distribution
-        avr_C     = avr_C    + counts[sample]*tmp_eng
+    M1_sampled = np.sum(allCostsWeightedByNumberOfOccurances)/np.sum(list(counts.values()))
+    max_C[1] = np.amax(allCosts)
+    max_C[0] = bitarray.bitarray(z[np.where(allCosts == max_C[1])[0][0]][0])
 
 
+    # print("Max number of states: {} ".format(2 ** len(max_C[0])))
+    # print("Number of achieved QAOA states: {} ".format(len(counts)))
+    # print("Ratio of achieved states compared to max states {} ".format((len(counts) / (2 ** len(max_C[0])))*100))
+    # print("Average: {}".format(M1_sampled))
+    # print("Best Cut: {}".format(max_C[1]))
+    # print("Best Cut State: {}".format(max_C[0]))
 
-        #
-        # mostcommonCounts = list(counts.values())
-        # mostcommonCounts.sort(reverse=True)
-        # print(mostcommonCounts[:5])
-
-
-
-        # save most common string
-        # if ( max_C[2] < counts[sample]):
-        #     max_C[2] = counts[sample]
-        #     max_C[0] = sample
-        #     max_C[1] = tmp_eng
-
-        # save best bit string
-        # if( max_C[1] < tmp_eng):
-        #     max_C[0] = sample
-        #     max_C[1] = tmp_eng
-
-    M1_sampled   = avr_C/np.sum(list(counts.values()))
-    
-    # print('The sampled mean value is M1_sampled = %.02f' % (M1_sampled))
-    # print('The approximate solution is x* = %s with C(x*) = %d' % (max_C[0],max_C[1]))
     return M1_sampled, max_C[0], max_C[1]
 
 def plotSolution(G, params, p):
@@ -249,7 +218,6 @@ def compareOptimizerEnergy(graph, p_range, optimizers):
                 results = []
                 times = []
                 for j in range(1):
-                    import time
                     t1 = time.time()
                     params_warm_optimized = minimize(objectiveFunction, params, method=optimizers[optimizer], args=(graph, bestCuts[i,0],p), options=optimizer_options)
                     results.append(objectiveFunctionBest(params_warm_optimized.x, graph, bestCuts[i,0], p))
@@ -404,16 +372,16 @@ def compareEpsilon(graph, epsilon_range):
 
 # graph = GraphGenerator.genButterflyGraph()
 # graph = GraphGenerator.genGridGraph(4,4)
-graph = GraphGenerator.genFullyConnectedGraph(20)
+# graph = GraphGenerator.genFullyConnectedGraph(20)
 # graph = GraphGenerator.genMustyGraph()
-graph = GraphGenerator.genRandomGraph(19,111)
+graph = GraphGenerator.genRandomGraph(21,155)
 # GraphPlotter.plotGraph(graph)
 
 # compareWarmStartEnergy(graph, [1,2])
 compareOptimizerEnergy(graph, [1,2], ["Cobyla", "CG", "TNC"])
 # compareOptimizerEnergy(graph, [1,2], ["Cobyla", "Powell"])
 # compareEpsilon(graph, np.arange(0.0,0.51,0.05))
-GraphPlotter.plotGraph(graph, fname="results/graph-"+datetime.now().strftime("%Y-%m-%d_%H-%M")+".png")
+# GraphPlotter.plotGraph(graph, fname="results/graph-"+datetime.now().strftime("%Y-%m-%d_%H-%M")+".png")
 
 # print(params.x)
 # plotCircuit(graph, params.x, p, FakeYorktown())
