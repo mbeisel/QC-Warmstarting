@@ -35,7 +35,6 @@ class QAOACircuitGenerator():
             QAOA.barrier()
 
             if(initial):
-                # QAOA.rx(2*params[2*iter+1], range(len(V)))
                 for qubits in range(len(V)):
                     QAOA.ry(2*np.arcsin(np.sqrt(initial[qubits])),qubits)
                     QAOA.rz(-2*params[2*iter+1],qubits)
@@ -50,6 +49,5 @@ class QAOACircuitGenerator():
         ## draw the circuit for comparison
         # QAOA.draw(output='mpl')
         # plt.show()
-
 
         return QAOA

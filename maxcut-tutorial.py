@@ -423,28 +423,26 @@ def compareEpsilon(graph, epsilon_range):
 
     RawBestCuts = bestGWcuts(graph, 3, 2, continuous=False, epsilon=0)  # get raw solutions using epsilon = 0
     print(RawBestCuts)
-    p = 2
+    p = 1
 
     epsilon_range = list(epsilon_range)
     for eps in epsilon_range:
         warmstart_cutsize = []
         warmstart_energy = []
         bestCuts = np.array([[epsilonFunction(cut[0], eps), cut[1]] for cut in deepcopy(RawBestCuts)], dtype=object)
-        # bestCutsParams = [gridSearch(objectiveFunction, graph, bestCuts[i,0], p, step_size=0.2, show_plot=False)[0] for i in range(1)]
-        optimizer_options = ({"rhobeg": 1.57, "disp": False})  # , "maxiter": 10})# to limit optimizer iterations
+
+        #bestCutsParams = [gridSearch(objectiveFunction, graph, bestCuts[i,0], p, step_size=0.2, show_plot=False)[0] for i in range(1)]
+        optimizer_options = ({"rhobeg": 0.2, "disp": False})#, "maxiter": 10})# to limit optimizer iterations
         for i in range(len(bestCuts)):
             print(bestCuts[i])
-            for j in range(1):
-                params = np.array([0, 0, 0, 1.57])
-                params_warm_optimized = minimize(objectiveFunction, params, method="COBYLA",
-                                                 args=(graph, bestCuts[i, 0], p), options=optimizer_options)
-                warmstart_cutsize.append(objectiveFunctionBest(params_warm_optimized.x, graph, bestCuts[i, 0], p))
-                warmstart_energy.append(objectiveFunction(params_warm_optimized.x, graph, bestCuts[i, 0], p))
-                print("params optimized: {} -> {}, energy measured: {}, cutsize: {}".format(params,
-                                                                                            params_warm_optimized.x,
-                                                                                            warmstart_energy[-1],
-                                                                                            warmstart_cutsize[-1]))
-            print("{:.2f}%".format(100 * (i + 1 + 5 * epsilon_range.index(eps)) / (len(epsilon_range) * 5)))
+            for j in range(3):
+                params = [0, np.pi/2]
+                params_warm_optimized = minimize(objectiveFunction, params, method="COBYLA", args=(graph, bestCuts[i,0], p), options=optimizer_options)
+                energy, bestCut, maxCutChance = objectiveFunctionBest(params_warm_optimized.x, graph, bestCuts[i,0], p)
+                warmstart_cutsize.append(bestCut)
+                warmstart_energy.append(energy)
+                print("params optimized: {} -> {}, energy measured: {}, cutsize: {}".format(params, params_warm_optimized.x, warmstart_energy[-1], warmstart_cutsize[-1]))
+            print("{:.2f}%".format(100*(i+1+5*epsilon_range.index(eps))/(len(epsilon_range)*5)))
 
         warm_means.append(np.mean(warmstart_cutsize))
         warm_means_energy.append(np.mean(warmstart_energy))
@@ -455,14 +453,12 @@ def compareEpsilon(graph, epsilon_range):
     print(warm_means)
     warm_dev = np.array(warm_dev)
     warm_energies = np.array(warm_energies)
-    plt.scatter(warm_dev[:, 0], warm_dev[:, 1], marker=".", color='gray', label="single cut")
-    plt.scatter(warm_energies[:, 0], warm_energies[:, 1], marker=".", color='tan', label="single energy")
+    plt.scatter(warm_dev[:,0], warm_dev[:,1], marker=".", color='gray', label="single cut")
+    plt.scatter(warm_energies[:,0], warm_energies[:,1], marker=".", color='tan', label="single energy")
     plt.scatter(epsilon_range, warm_means, linestyle="None", marker="x", color="r", label="mean cut", alpha=.5)
-    plt.scatter(epsilon_range, swapSign(warm_means_energy), linestyle="None", marker="x", color="darkorange",
-                label="mean energy", alpha=.5)
-    plt.legend(loc="best"), plt.xlabel("epsilon"), plt.ylabel("Energy/Cutsize"), plt.title(
-        "Warm-started QAOA comparison")
-    plt.savefig("results/epsilons-" + datetime.now().strftime("%Y-%m-%d_%H-%M") + ".png", format="png")
+    plt.scatter(epsilon_range, swapSign(warm_means_energy), linestyle="None", marker="x", color="darkorange", label="mean energy", alpha=.5)
+    plt.legend(loc="best"), plt.xlabel("epsilon"), plt.ylabel("Energy/Cutsize"), plt.title("Warm-started QAOA comparison")
+    plt.savefig("results/epsilons-"+datetime.now().strftime("%Y-%m-%d_%H-%M")+".png", format="png")
     plt.close()
 
 
@@ -471,7 +467,7 @@ def compareEpsilon(graph, epsilon_range):
 graph = GraphGenerator.genFullyConnectedGraph(10)
 # graph = GraphGenerator.genMustyGraph()
 # graph = GraphGenerator.genRandomGraph(5,6)
-GraphPlotter.plotGraph(graph)
+# GraphPlotter.plotGraph(graph)
 
 compareWarmStartEnergy(graph, [1, 2])
 # compareOptimizerEnergy(graph, [1], ["Cobyla", "TNC"])  #TNC
