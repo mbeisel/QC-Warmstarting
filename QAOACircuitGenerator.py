@@ -1,5 +1,6 @@
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 class QAOACircuitGenerator():
@@ -36,9 +37,9 @@ class QAOACircuitGenerator():
             if(initial):
                 # QAOA.rx(2*params[2*iter+1], range(len(V)))
                 for qubits in range(len(V)):
-                    QAOA.ry(-2*np.arcsin(np.sqrt(initial[qubits])),qubits)
-                    QAOA.rz(-2*params[2*iter+1],qubits)
                     QAOA.ry(2*np.arcsin(np.sqrt(initial[qubits])),qubits)
+                    QAOA.rz(-2*params[2*iter+1],qubits)
+                    QAOA.ry(-2*np.arcsin(np.sqrt(initial[qubits])),qubits)
             else:
                 QAOA.rx(2*params[2*iter+1], range(len(V)))
         
@@ -47,5 +48,8 @@ class QAOACircuitGenerator():
         QAOA.measure(range(len(V)),range(len(V)))
         
         ## draw the circuit for comparison
-        # QAOA.draw()
+        # QAOA.draw(output='mpl')
+        # plt.show()
+
+
         return QAOA
