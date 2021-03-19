@@ -52,14 +52,18 @@ def runQaoa(input, Graph, approximation_List, p):
     return QAOA_results
 
 
-def compute_costs(QAOA_results, G, showHistogram=False):
+def compute_costs(QAOA_results, G, knownMaxCut = None, showHistogram=False):
     # Evaluate the data from the simulator
     counts = QAOA_results.get_counts()
     max_C = [0, 0, 0]
+    max_Cut_Probability = 0
 
     z = zip(list(counts.keys()), list(counts.values()))
     z = list(z)
 
+
+    def takeFirst(elem):
+        return elem[0]
     def takeSecond(elem):
         return elem[1]
 
@@ -76,6 +80,23 @@ def compute_costs(QAOA_results, G, showHistogram=False):
     # max_C[1] = allCosts[0]
     # max_C[0] = bitarray.bitarray(z[0][1])
 
+    if (knownMaxCut):
+        if isinstance(knownMaxCut, str):
+            knownMaxCut = bitarray.bitarray(knownMaxCut)
+
+
+        knownMaxCut = [int(round(i)) for i in knownMaxCut]
+        knownMaxCutString = ''.join(str(i) for i in knownMaxCut)
+
+        knownMaxCut_inverse = [-(i-1) for i in knownMaxCut]
+        knownMaxCutInverseString = ''.join(str(i) for i in knownMaxCut_inverse)
+        for elem in z:
+            if elem[0] == knownMaxCutInverseString or elem[0] == knownMaxCutString:
+                max_Cut_Probability += elem[1]
+
+        max_Cut_Probability = max_Cut_Probability/np.sum(list(counts.values()))
+
+
     if (showHistogram):
         plot_histogram(counts)
         plt.show()
@@ -87,12 +108,12 @@ def compute_costs(QAOA_results, G, showHistogram=False):
     # print("Best Cut: {}".format(max_C[1]))
     # print("Best Cut State: {}".format(max_C[0]))
 
-    return M1_sampled, max_C[0], max_C[1]
+    return M1_sampled, max_C[0], max_C[1], max_Cut_Probability
 
 
 def plotSolution(G, params, p):
     results = runQaoa(params, G, p)
-    costs, solution, _ = compute_costs(results, G)
+    costs, solution, _, _ = compute_costs(results, G)
     GraphPlotter.plotGraph(G, solution)
 
 
@@ -114,15 +135,15 @@ costs_history = []
 def objectiveFunction(input, Graph, approximation_List, p, showHistogram=False):
     global costs_history
     results = runQaoa(input, Graph, approximation_List, p)
-    costs, _, _ = compute_costs(results, Graph, showHistogram)
+    costs, _, _, _ = compute_costs(results, Graph, showHistogram)
     costs_history.append(costs)
     return - costs
 
 
-def objectiveFunctionBest(input, Graph, approximation_List, p, showHistogram=False):
+def objectiveFunctionBest(input, Graph, approximation_List, p, knownMaxCut = None, showHistogram=False):
     results = runQaoa(input, Graph, approximation_List, p)
-    energy, _, bestCut = compute_costs(results, Graph, showHistogram=showHistogram)
-    return energy, bestCut
+    energy, _, bestCut, maxCutChance = compute_costs(results, Graph, knownMaxCut=knownMaxCut, showHistogram=showHistogram)
+    return energy, bestCut, maxCutChance
 
 
 def continuousGWsolve(graph):
@@ -248,7 +269,7 @@ def compareOptimizerEnergy(graph, p_range, optimizers):
                     t1 = time.time()
                     params_warm_optimized = minimize(objectiveFunction, params, method=optimizers[optimizer],
                                                      args=(graph, bestCuts[i, 0], p), options=optimizer_options)
-                    energy, cut = objectiveFunctionBest(params_warm_optimized.x, graph, bestCuts[i, 0], p,
+                    energy, cut, _ = objectiveFunctionBest(params_warm_optimized.x, graph, bestCuts[i, 0], p,
                                                         showHistogram=False)
                     resultCuts.append(energy)
                     resultEnergy.append(-cut)
@@ -325,31 +346,47 @@ def compareWarmStartEnergy(graph, p_range):
     cold_dev = []
     warm_max = []
     cold_max = []
+    warm_MaxCutProb = []
+    cold_MaxCutProb = []
 
     bestCuts = bestGWcuts(graph, 8, 5, continuous=False, epsilon=0)
-    bestCuts = np.array([[epsilonFunction(cut[0], 0.25), cut[1]] for cut in deepcopy(bestCuts)], dtype=object)
+    bestCuts = np.array([[epsilonFunction(cut[0], epsilon=0.25), cut[1]] for cut in deepcopy(bestCuts)], dtype=object)
     print(bestCuts)
 
     p_range = list(p_range)
     for p in p_range:
         warmstart = []
         coldstart = []
+        warmstartMaxCutProb = []
+        coldstartMaxCutProb = []
 
         optimizer_options = None  # ({"maxiter": 10})# to limit optimizer iterations
-        for i in range(3, 5):
+        for i in range(1, 5):
 
             # bestCutsParams = [gridSearch(objectiveFunction, graph, bestCuts[i,0], p)[0] for i in range(len(bestCuts))]
-            for j in range(1):
+            for j in range(5):
                 params = np.zeros(2 * p)  # np.random.default_rng().uniform(0, np.pi, size=2*p)
                 params_warm_optimized = minimize(objectiveFunction, params, method="COBYLA",
                                                  args=(graph, bestCuts[i, 0], p), options=optimizer_options)
                 # plotCircuit(graph, bestCuts[i,0], params_warm_optimized.x, p,)
                 params_cold_optimized = minimize(objectiveFunction, params, method="COBYLA", args=(graph, None, p),
                                                  options=optimizer_options)
-                warmstart.append(objectiveFunctionBest(params_warm_optimized.x, graph, bestCuts[i, 0], p))
-                coldstart.append(objectiveFunctionBest(params_cold_optimized.x, graph, None, p))
+                energyWarm, cutWarm, maxCutChanceWarm = objectiveFunctionBest(params_warm_optimized.x, graph, bestCuts[i, 0], p,
+                                                                              knownMaxCut=bestCuts[len(bestCuts)-1,0],
+                                                                              # knownMaxCut="10011",
+                                                                              showHistogram=False)
+                warmstart.append(energyWarm)
+                warmstartMaxCutProb.append(maxCutChanceWarm)
+                print("maxcutchance {}".format(maxCutChanceWarm))
+                energyCold, cutCold, maxCutChanceCold = objectiveFunctionBest(params_warm_optimized.x, graph, None, p,
+                                                                              knownMaxCut=bestCuts[len(bestCuts)-1,0],
+                                                                              showHistogram=False)
+                coldstartMaxCutProb.append(maxCutChanceCold)
+                coldstart.append(energyCold)
             print("{:.2f}%".format(100 * (i + 1 + 5 * p_range.index(p)) / (len(p_range) * 5)))
 
+        warm_MaxCutProb.append(np.mean(warmstartMaxCutProb))
+        cold_MaxCutProb.append(np.mean(coldstartMaxCutProb))
         warm_means.append(np.mean(warmstart))
         cold_means.append(np.mean(coldstart))
         warm_dev.append(np.std(warmstart))
@@ -370,6 +407,13 @@ def compareWarmStartEnergy(graph, p_range):
     plt.legend(loc="best"), plt.xlabel("p"), plt.ylabel("Energy"), plt.title("Warm-started QAOA comparison")
     plt.show()
 
+    plotline, capline, barlinecols = plt.errorbar(p_range, cold_MaxCutProb, linestyle="None", marker="x",
+                                                  color="b", label="coldstarted")
+    plotline, capline, barlinecols = plt.errorbar(p_range, warm_MaxCutProb, linestyle="None", marker="x",
+                                                  color="r", label="warmstarted")
+    plt.legend(loc="best"), plt.xlabel("p"), plt.ylabel("MaxCut Probability"), plt.title(
+        "MaxCut Probability")
+    plt.show()
 
 def compareEpsilon(graph, epsilon_range):
     warm_means = []
@@ -424,9 +468,9 @@ def compareEpsilon(graph, epsilon_range):
 
 # graph = GraphGenerator.genButterflyGraph()
 # graph = GraphGenerator.genGridGraph(4,4)
-graph = GraphGenerator.genFullyConnectedGraph(21)
+graph = GraphGenerator.genFullyConnectedGraph(10)
 # graph = GraphGenerator.genMustyGraph()
-# graph = GraphGenerator.genRandomGraph(3,3)
+# graph = GraphGenerator.genRandomGraph(5,6)
 GraphPlotter.plotGraph(graph)
 
 compareWarmStartEnergy(graph, [1, 2])
