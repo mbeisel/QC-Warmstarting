@@ -58,7 +58,7 @@ class QAOACircuitGenerator():
 
     @classmethod
     def genQaoaMaxcutCircuit(cls, graph, params, initial = None, p=1):
-        template = QAOACircuitGenerator.genQaoaMaxcutCircuitTemplate(graph, initial[::-1], p)
+        template = QAOACircuitGenerator.genQaoaMaxcutCircuitTemplate(graph, initial[::-1] if initial else None, p)
         return QAOACircuitGenerator.assignParameters(template, params)
 
     @classmethod
@@ -79,9 +79,3 @@ class QAOACircuitGenerator():
                         parameter_dict[parameter] = params[i]
             params = parameter_dict
         return circuit_template.assign_parameters(params)
-
-# from graphGenerator import GraphGenerator
-# circuit = QAOACircuitGenerator.genQaoaMaxcutCircuit(GraphGenerator.genButterflyGraph(), [.23, .5], [.75,.25,.25,.25,.75], 1)
-# #QAOACircuitGenerator.genQaoaMaxcutCircuitTemplate(GraphGenerator.genButterflyGraph(), [.75,.25,.25,.25,.75], 1)
-# circuit.draw(output="mpl")
-# plt.show()
