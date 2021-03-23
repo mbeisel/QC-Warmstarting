@@ -336,7 +336,7 @@ def compareOptimizerEnergy(graph, p_range, optimizers):
     plt.close()
 
 
-def compareWarmStartEnergy(graph, p_range):
+def compareWarmStartEnergy(graph, p_range, initialCut = None):
     warm_means = []
     cold_means = []
     warm_dev = []
@@ -361,16 +361,19 @@ def compareWarmStartEnergy(graph, p_range):
         for i in range(2, 3):
 
             # bestCutsParams = [gridSearch(objectiveFunction, graph, bestCuts[i,0], p)[0] for i in range(len(bestCuts))]
-            for j in range(2):
+            for j in range(5):
+                bestCut = bestCuts[i,0]
+                if(initialCut):
+                    bestCut = initialCut
                 params = np.zeros(2 * p)  # np.random.default_rng().uniform(0, np.pi, size=2*p)
                 params_warm_optimized = minimize(objectiveFunction, params, method="COBYLA",
-                                                 args=(graph, bestCuts[i, 0], p), options=optimizer_options)
+                                                 args=(graph, bestCut, p), options=optimizer_options)
                 # plotCircuit(graph, bestCuts[i,0], params_warm_optimized.x, p,)
                 params_cold_optimized = minimize(objectiveFunction, params, method="COBYLA", args=(graph, None, p),
                                                  options=optimizer_options)
-                energyWarm, cutWarm, maxCutChanceWarm = objectiveFunctionBest(params_warm_optimized.x, graph, bestCuts[i, 0], p,
+                energyWarm, cutWarm, maxCutChanceWarm = objectiveFunctionBest(params_warm_optimized.x, graph, bestCut, p,
                                                                               knownMaxCut=bestCuts[len(bestCuts)-1,0],
-                                                                              # knownMaxCut="10011",
+                                                                              # knownMaxCut="001111",
                                                                               showHistogram=False)
                 warmstart.append(energyWarm)
                 warmstartMaxCutProb.append(maxCutChanceWarm)
@@ -402,6 +405,10 @@ def compareWarmStartEnergy(graph, p_range):
     plotline, capline, barlinecols = plt.errorbar(p_range, warm_means, warm_dev, linestyle="None", marker="x",
                                                   color="r")
     [(bar.set_alpha(0.5), bar.set_label("warmstarted")) for bar in barlinecols]
+    plt.plot([np.min(p_range), np.max(p_range)], [bestCuts[2, 1], bestCuts[2, 1]], linestyle="dashed",
+             label="used GW-Cut")
+    plt.plot([np.min(p_range), np.max(p_range)], [bestCuts[-1, 1], bestCuts[-1, 1]], linestyle="dashed",
+         label="best GW-Cut")
     plt.legend(loc="best"), plt.xlabel("p"), plt.ylabel("Energy"), plt.title("Warm-started QAOA comparison")
     plt.savefig("results/warmstartEnergy-"+datetime.now().strftime("%Y-%m-%d_%H-%M")+".png", format="png")
     plt.show()
@@ -470,7 +477,7 @@ def compareEpsilon(graph, epsilon_range):
 graph = GraphGenerator.genWarmstartPaperGraph()
 # GraphPlotter.plotGraph(nx.Graph(graph))
 
-compareWarmStartEnergy(graph, [1, 2])
+compareWarmStartEnergy(graph, [1, 2, 3 ,4])
 # compareOptimizerEnergy(graph, [1], ["Cobyla", "TNC"])  #TNC
 # compareOptimizerEnergy(graph, [1,2], ["Cobyla", "Powell"])
 # compareEpsilon(graph, np.arange(0.0, 0.51, 0.05))

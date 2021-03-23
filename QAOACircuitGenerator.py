@@ -45,7 +45,7 @@ class QAOACircuitGenerator():
         QAOA.measure(range(n_vertices),range(n_vertices))
         
         ## draw the circuit for comparison
-        QAOA.draw(output='mpl')
-        plt.show()
+        # QAOA.draw(output='mpl')
+        # plt.show()
 
         return QAOA
