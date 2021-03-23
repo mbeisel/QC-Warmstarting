@@ -195,7 +195,7 @@ def bestGWcuts(graph, n_GW_cuts, n_best, continuous=False, epsilon=0.25):
                     approximation_list.append(1)
 
         GW_cuts.append(
-            [epsilonFunction(approximation_list, epsilon=epsilon), cost_function_C(approximation_list, graph)])
+            [epsilonFunction(deepcopy(approximation_list), epsilon=epsilon), cost_function_C(approximation_list, graph)])
 
     GW_cuts = np.array(GW_cuts, dtype=object)
     GW_cuts = GW_cuts[GW_cuts[:, 1].argsort()]
