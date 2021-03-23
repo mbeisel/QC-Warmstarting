@@ -1,6 +1,4 @@
 import numpy as np
-import networkx as nx  # tool to handle general Graphs
-from cvxgraphalgs.algorithms.max_cut import _solve_cut_vector_program
 
 from graphGenerator import GraphGenerator, GraphPlotter
 from QAOACircuitGenerator import QAOACircuitGenerator
@@ -15,9 +13,7 @@ from qiskit.providers.ibmq import least_busy
 from qiskit.tools.monitor import job_monitor
 from qiskit.visualization import plot_histogram
 from qiskit.test.mock import FakeBoeblingen, FakeYorktown
-import cvxgraphalgs as cvxgr
 from numpy import dtype
-from copy import deepcopy
 import time
 from datetime import datetime
 
@@ -141,66 +137,8 @@ def objectiveFunctionBest(input, Graph, approximation_List, p, knownMaxCut = Non
     energy, _, bestCut, maxCutChance = compute_costs(results, Graph, knownMaxCut=knownMaxCut, showHistogram=showHistogram)
     return energy, bestCut, maxCutChance
 
-def continuousGWsolve(graph):
-    # compute continuous valued, [0,1]-normalized GW solution
-    adjacency = nx.linalg.adjacency_matrix(graph)
-    adjacency = adjacency.toarray()
-    solution = _solve_cut_vector_program(adjacency)
-
-    size = len(solution)
-    partition = np.random.default_rng().uniform(size=size)
-    partition_norm = np.linalg.norm(partition)
-    partition = 1 / partition_norm * partition
-    projections = solution.T @ partition
-
-    # normalize [-1,1] -> [0,1]
-    positive_projections = (projections + 1) / 2
-    return list(positive_projections)
-
-
-def epsilonFunction(cutList, epsilon=0.25):
-    # increase distance of continuous values from exact 0 and 1
-    for i in range(len(cutList)):
-        if (cutList[i] > 1 - epsilon):
-            cutList[i] = 1 - epsilon
-        if (cutList[i] < epsilon):
-            cutList[i] = epsilon
-    return cutList
-
-
 def swapSign(list):
     return [-i for i in list]
-
-
-def bestGWcuts(graph, n_GW_cuts, n_best, continuous=False, epsilon=0.25):
-    # returns n_best best cuts out of n_GW_cuts to be computed
-    if n_best > n_GW_cuts:
-        raise Exception("n_best has to be less or equal to n_GW_cuts")
-
-    GW_cuts = []
-    for i in range(n_GW_cuts):
-
-        if continuous:
-            approximation_list = continuousGWsolve(graph)
-        else:
-            approximation = cvxgr.algorithms.goemans_williamson_weighted(nx.Graph(graph))
-            # compute binary representation of cut for discrete solution
-            approximation_list = []
-            for n in range(len(approximation.vertices)):
-                if (n in approximation.left):
-                    approximation_list.append(0)
-                else:
-                    approximation_list.append(1)
-
-        GW_cuts.append(
-            [epsilonFunction(deepcopy(approximation_list), epsilon=epsilon), cost_function_C(approximation_list, graph)])
-
-    GW_cuts = np.array(GW_cuts, dtype=object)
-    GW_cuts = GW_cuts[GW_cuts[:, 1].argsort()]
-    GW_cuts = GW_cuts[n_GW_cuts - n_best:]
-    return GW_cuts
-
-
 
 def compareOptimizerEnergy(graph, p_range, optimizers):
     bestCuts = bestGWcuts(graph, 8, 5, continuous=False, epsilon=0)
