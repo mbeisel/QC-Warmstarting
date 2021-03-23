@@ -81,6 +81,18 @@ class GraphGenerator():
 
         return matrix
 
+    @classmethod
+    def genWarmstartPaperGraph(cls):
+        matrix = np.zeros((6, 6))
+        orderedEdgeWeightlist = [3,3,6,9,1,   4,4,-8,4,        3,-7,1,   -7,6,   -5]
+        for i in range( matrix.shape[0]-1):
+            for j in range(1,matrix.shape[0]):
+                if i < j:
+                    weight, orderedEdgeWeightlist = pop(orderedEdgeWeightlist)
+                    matrix[i,j] = weight
+                    matrix[j,i] = matrix[i,j]
+        return matrix
+
 def pop(list):
     firstElement = list[0]
     list = list[1:]

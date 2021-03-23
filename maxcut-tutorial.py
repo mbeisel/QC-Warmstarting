@@ -26,9 +26,6 @@ from datetime import datetime
 
 # Compute the value of the cost function
 def cost_function_C(x, G):
-    # E = G.edges()
-    # if (len(x) != len(G.nodes())):
-    #     return np.nan
     n_vertices = G.shape[0]
 
     C = 0;
@@ -37,14 +34,6 @@ def cost_function_C(x, G):
             if i > j and graph[i,j] != 0:
                 w = graph[i,j]
                 C = C + w * x[i] * (1 - x[j]) + w * x[j] * (1 - x[i])
-
-
-    # for index in E:
-    #     e1 = index[0]
-    #     e2 = index[1]
-    #
-    #     w = G[e1][e2]['weight']
-    #     C = C + w * x[e1] * (1 - x[e2]) + w * x[e2] * (1 - x[e1])
 
     return C
 
@@ -475,10 +464,11 @@ def compareEpsilon(graph, epsilon_range):
 
 # graph = GraphGenerator.genButterflyGraph()
 # graph = GraphGenerator.genGridGraph(4,4)
-graph = GraphGenerator.genFullyConnectedGraph(5)
+# graph = GraphGenerator.genFullyConnectedGraph(5)
 # graph = GraphGenerator.genMustyGraph()
 # graph = GraphGenerator.genRandomGraph(5,6)
-# GraphPlotter.plotGraph(graph)
+graph = GraphGenerator.genWarmstartPaperGraph()
+# GraphPlotter.plotGraph(nx.Graph(graph))
 
 compareWarmStartEnergy(graph, [1, 2])
 # compareOptimizerEnergy(graph, [1], ["Cobyla", "TNC"])  #TNC
