@@ -26,17 +26,25 @@ from datetime import datetime
 
 # Compute the value of the cost function
 def cost_function_C(x, G):
-    E = G.edges()
-    if (len(x) != len(G.nodes())):
-        return np.nan
+    # E = G.edges()
+    # if (len(x) != len(G.nodes())):
+    #     return np.nan
+    n_vertices = G.shape[0]
 
     C = 0;
-    for index in E:
-        e1 = index[0]
-        e2 = index[1]
+    for i in range(1, n_vertices):
+        for j in range(n_vertices -1):
+            if i > j and graph[i,j] != 0:
+                w = graph[i,j]
+                C = C + w * x[i] * (1 - x[j]) + w * x[j] * (1 - x[i])
 
-        w = G[e1][e2]['weight']
-        C = C + w * x[e1] * (1 - x[e2]) + w * x[e2] * (1 - x[e1])
+
+    # for index in E:
+    #     e1 = index[0]
+    #     e2 = index[1]
+    #
+    #     w = G[e1][e2]['weight']
+    #     C = C + w * x[e1] * (1 - x[e2]) + w * x[e2] * (1 - x[e1])
 
     return C
 
@@ -188,7 +196,7 @@ def bestGWcuts(graph, n_GW_cuts, n_best, continuous=False, epsilon=0.25):
         if continuous:
             approximation_list = continuousGWsolve(graph)
         else:
-            approximation = cvxgr.algorithms.goemans_williamson_weighted(graph)
+            approximation = cvxgr.algorithms.goemans_williamson_weighted(nx.Graph(graph))
             # compute binary representation of cut for discrete solution
             approximation_list = []
             for n in range(len(approximation.vertices)):
@@ -317,7 +325,7 @@ def compareOptimizerEnergy(graph, p_range, optimizers):
     plt.plot([np.min(p_range), np.max(p_range)], [bestCuts[-1, 1], bestCuts[-1, 1]], linestyle="dashed",
              label="best GW-Cut")
     plt.legend(loc="best"), plt.xlabel("p"), plt.ylabel("Cutsize"), plt.title("Optimizer comparison warmstart")
-    plt.savefig('optimizers_p_values_warm.png')
+    plt.savefig("results/optimizers_p_values_warm-"+datetime.now().strftime("%Y-%m-%d_%H-%M")+".png", format="png")
     plt.show()
     plt.close()
 
@@ -334,7 +342,7 @@ def compareOptimizerEnergy(graph, p_range, optimizers):
         plt.errorbar(p_range, optimizers_p_runtime[optimizer], marker="x", label=optimizers[optimizer])
     plt.legend(loc="best"), plt.xlabel("p"), plt.ylabel("Runtime in s"), plt.title(
         "Optimizer runtime comparison (warmstart)")
-    plt.savefig('optimizers_p_runtime.png')
+    plt.savefig("results/optimizer_p_energy-"+datetime.now().strftime("%Y-%m-%d_%H-%M")+".png", format="png")
     plt.show()
     plt.close()
 
@@ -361,10 +369,10 @@ def compareWarmStartEnergy(graph, p_range):
         coldstartMaxCutProb = []
 
         optimizer_options = None  # ({"maxiter": 10})# to limit optimizer iterations
-        for i in range(1, 5):
+        for i in range(2, 3):
 
             # bestCutsParams = [gridSearch(objectiveFunction, graph, bestCuts[i,0], p)[0] for i in range(len(bestCuts))]
-            for j in range(5):
+            for j in range(2):
                 params = np.zeros(2 * p)  # np.random.default_rng().uniform(0, np.pi, size=2*p)
                 params_warm_optimized = minimize(objectiveFunction, params, method="COBYLA",
                                                  args=(graph, bestCuts[i, 0], p), options=optimizer_options)
@@ -397,6 +405,7 @@ def compareWarmStartEnergy(graph, p_range):
         print(coldstart)
 
     print([warm_means, cold_means])
+    print([warm_MaxCutProb, cold_MaxCutProb])
     # print([warm_max, cold_max])
     plotline, capline, barlinecols = plt.errorbar(p_range, cold_means, cold_dev, linestyle="None", marker="x",
                                                   color="b")
@@ -405,6 +414,7 @@ def compareWarmStartEnergy(graph, p_range):
                                                   color="r")
     [(bar.set_alpha(0.5), bar.set_label("warmstarted")) for bar in barlinecols]
     plt.legend(loc="best"), plt.xlabel("p"), plt.ylabel("Energy"), plt.title("Warm-started QAOA comparison")
+    plt.savefig("results/warmstartEnergy-"+datetime.now().strftime("%Y-%m-%d_%H-%M")+".png", format="png")
     plt.show()
 
     plotline, capline, barlinecols = plt.errorbar(p_range, cold_MaxCutProb, linestyle="None", marker="x",
@@ -413,6 +423,7 @@ def compareWarmStartEnergy(graph, p_range):
                                                   color="r", label="warmstarted")
     plt.legend(loc="best"), plt.xlabel("p"), plt.ylabel("MaxCut Probability"), plt.title(
         "MaxCut Probability")
+    plt.savefig("results/warmstartEnergy-"+datetime.now().strftime("%Y-%m-%d_%H-%M")+".png", format="png")
     plt.show()
 
 def compareEpsilon(graph, epsilon_range):
@@ -464,7 +475,7 @@ def compareEpsilon(graph, epsilon_range):
 
 # graph = GraphGenerator.genButterflyGraph()
 # graph = GraphGenerator.genGridGraph(4,4)
-graph = GraphGenerator.genFullyConnectedGraph(10)
+graph = GraphGenerator.genFullyConnectedGraph(5)
 # graph = GraphGenerator.genMustyGraph()
 # graph = GraphGenerator.genRandomGraph(5,6)
 # GraphPlotter.plotGraph(graph)

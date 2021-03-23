@@ -14,7 +14,7 @@ class GraphGenerator():
         G.add_nodes_from(V)
         G.add_weighted_edges_from(E)
         
-        return G
+        return nx.adjacency_matrix(G)
 
     @classmethod
     def genGridGraph(cls, height, width):
@@ -35,7 +35,7 @@ class GraphGenerator():
         G.add_nodes_from(V)
         G.add_weighted_edges_from(E)
         
-        return G
+        return nx.adjacency_matrix(G)
 
     @classmethod
     def genMustyGraph(cls):
@@ -47,7 +47,7 @@ class GraphGenerator():
         G.add_nodes_from(V)
         G.add_weighted_edges_from(E)
     
-        return G
+        return nx.adjacency_matrix(G)
 
     @classmethod
     def genFullyConnectedGraph(cls, n_vertices, weightRange=(-10, 10)):
@@ -61,7 +61,7 @@ class GraphGenerator():
         G.add_nodes_from(V)
         G.add_weighted_edges_from(E)
 
-        return G
+        return nx.adjacency_matrix(G)
 
     @classmethod
     def genRandomGraph(cls, n_vertices, n_edges, weightRange=(-10, 10)):
@@ -78,7 +78,8 @@ class GraphGenerator():
                     matrix[i,j], edges = pop(edges)
                     matrix[i,j] *= weight
                     matrix[j,i] = matrix[i,j]
-        return nx.Graph(matrix)
+
+        return matrix
 
 def pop(list):
     firstElement = list[0]
