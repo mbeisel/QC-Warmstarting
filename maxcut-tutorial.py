@@ -20,7 +20,6 @@ from numpy import dtype
 from copy import deepcopy
 import bitarray
 import time
-
 from datetime import datetime
 
 
@@ -36,8 +35,24 @@ def cost_function_C(x, G):
                 w = graph[i,j]
                 if(x[i] != x[j]):
                     C += w
+                C_total += w
                 # C += w * x[i] * (1 - x[j]) + w * x[j] * (1 - x[i])
+
+    # qubitOp, offset = max_cut.get_operator(G)
+    # print('Offset:', offset)
+    # print('Ising Hamiltonian:')
+    # print(qubitOp.print_details())
     return C
+
+def totalCost(G):
+    n_vertices = G.shape[0]
+    C_total = 0
+    for i in range(n_vertices):
+        for j in range(1,n_vertices):
+            if i < j and graph[i,j] != 0:
+                w = graph[i,j]
+                C_total += w
+    return C_total/2
 
 
 def runQaoa(input, Graph, approximation_List, p):
@@ -71,7 +86,7 @@ def compute_costs(QAOA_results, G, knownMaxCut = None, showHistogram=False):
     allCosts = np.array([cost_function_C(bitarray.bitarray(x), G) for x, _ in z])
     allCostsWeightedByNumberOfOccurances = np.array([allCosts[i] * z[i][1] for i in range(len(z))])
 
-    M1_sampled = np.sum(allCostsWeightedByNumberOfOccurances) / np.sum(list(counts.values()))
+    M1_sampled = (   np.sum(allCostsWeightedByNumberOfOccurances) / np.sum(list(counts.values()))  ) - totalCost(G)
     max_C[1] = np.amax(allCosts)
     max_C[0] = bitarray.bitarray(z[np.where(allCosts == max_C[1])[0][0]][0])
 
@@ -332,12 +347,14 @@ def compareOptimizerEnergy(graph, p_range, optimizers):
 def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None):
     warm_means = []
     cold_means = []
-    warm_dev = []
-    cold_dev = []
+    warm_value_list = []
+    cold_value_list = []
     warm_max = []
     cold_max = []
     warm_MaxCutProb = []
     cold_MaxCutProb = []
+    warm_MaxCutProb_Values = []
+    cold_MaxCutProb_Values = []
 
     bestCuts = bestGWcuts(graph, 8, 5, continuous=False, epsilon=0)
     bestCuts = np.array([[epsilonFunction(cut[0], epsilon=0.25), cut[1]] for cut in deepcopy(bestCuts)], dtype=object)
@@ -357,7 +374,7 @@ def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None
         for i in range(2, 3):
 
             # bestCutsParams = [gridSearch(objectiveFunction, graph, bestCuts[i,0], p)[0] for i in range(len(bestCuts))]
-            for j in range(30):
+            for j in range(3):
                 bestCut = bestCuts[i,0]
                 if(initialCut):
                     bestCut = epsilonFunction(initialCut[0], epsilon=0.25)
@@ -382,12 +399,14 @@ def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None
                 coldstart.append(energyCold)
             print("{:.2f}%".format(100 * (i + 1 + 5 * p_range.index(p)) / (len(p_range) * 5)))
 
-        warm_MaxCutProb.append(np.mean(warmstartMaxCutProb))
-        cold_MaxCutProb.append(np.mean(coldstartMaxCutProb))
+        warm_MaxCutProb.append(np.mean(warmstartMaxCutProb)*100)
+        cold_MaxCutProb.append(np.mean(coldstartMaxCutProb)*100)
+        warm_MaxCutProb_Values.append([[p for i in range(len(warmstartMaxCutProb))], np.array(warmstartMaxCutProb)*100])
+        cold_MaxCutProb_Values.append([[p for i in range(len(coldstartMaxCutProb))], np.array(coldstartMaxCutProb)*100])
         warm_means.append(np.mean(warmstart))
         cold_means.append(np.mean(coldstart))
-        warm_dev.append(np.std(warmstart))
-        cold_dev.append(np.std(coldstart))
+        warm_value_list.append([[p for i in range(len(warmstart))], warmstart])
+        cold_value_list.append([[p for i in range(len(coldstart))], coldstart])
         warm_max.append(np.min(warmstart))
         cold_max.append(np.min(coldstart))
         print(warmstart)
@@ -396,28 +415,35 @@ def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None
     print([warm_means, cold_means])
     print([warm_MaxCutProb, cold_MaxCutProb])
     # print([warm_max, cold_max])
-    plotline, capline, barlinecols = plt.errorbar(p_range, cold_means, cold_dev, linestyle="None", marker="x",
-                                                  color="b")
-    [(bar.set_alpha(0.5), bar.set_label("coldstarted")) for bar in barlinecols]
-    plotline, capline, barlinecols = plt.errorbar(p_range, warm_means, warm_dev, linestyle="None", marker="x",
-                                                  color="r")
-    [(bar.set_alpha(0.5), bar.set_label("warmstarted")) for bar in barlinecols]
+
+
+    #energygraph
+    warm_value_list = np.array(warm_value_list)
+    cold_value_list = np.array(cold_value_list)
+    plt.scatter(warm_value_list[:,0], warm_value_list[:,1], marker=".", color='red', label="warmstarted", alpha=.4)
+    plt.scatter(cold_value_list[:,0], cold_value_list[:,1], marker=".", color='blue', label="coldstarted", alpha=.4)
+    plt.scatter(p_range, warm_means, linestyle="None", marker="x", color="r", label="mean cut", alpha=.75)
+    plt.scatter(p_range, cold_means, linestyle="None", marker="x", color="b", label="mean cut", alpha=.75)
     usedCut = bestCuts[2,1]
+    offset = totalCost(graph)
     if(initialCut):
         usedCut = initialCut[1]
-    plt.plot([np.min(p_range), np.max(p_range)], [usedCut, usedCut], linestyle="dashed",
+    plt.plot([np.min(p_range), np.max(p_range)], [usedCut -offset, usedCut-offset], linestyle="dashed",
              label="used GW-Cut")
-    plt.plot([np.min(p_range), np.max(p_range)], [bestCuts[-1, 1], bestCuts[-1, 1]], linestyle="dashed",
+    plt.plot([np.min(p_range), np.max(p_range)], [bestCuts[-1, 1]-offset, bestCuts[-1, 1]-offset], linestyle="dashed",
          label="best GW-Cut")
     plt.legend(loc="best"), plt.xlabel("p"), plt.ylabel("Energy"), plt.title("Warm-started QAOA comparison")
     plt.savefig("results/warmstartEnergy-"+datetime.now().strftime("%Y-%m-%d_%H-%M")+".png", format="png")
     plt.show()
 
-    plotline, capline, barlinecols = plt.errorbar(p_range, cold_MaxCutProb, linestyle="None", marker="x",
-                                                  color="b", label="coldstarted")
-    plotline, capline, barlinecols = plt.errorbar(p_range, warm_MaxCutProb, linestyle="None", marker="x",
-                                                  color="r", label="warmstarted")
-    plt.legend(loc="best"), plt.xlabel("p"), plt.ylabel("MaxCut Probability"), plt.title(
+    #probabilitygraph
+    warm_MaxCutProb_Values = np.array(warm_MaxCutProb_Values)
+    cold_MaxCutProb_Values = np.array(cold_MaxCutProb_Values)
+    plt.scatter(warm_MaxCutProb_Values[:,0], warm_MaxCutProb_Values[:,1], marker=".", color='red', label="warmstarted", alpha=.4)
+    plt.scatter(cold_MaxCutProb_Values[:,0], cold_MaxCutProb_Values[:,1], marker=".", color='blue', label="coldstarted", alpha=.4)
+    plt.scatter(p_range, warm_MaxCutProb, linestyle="None", marker="x", color="r", label="warm mean", alpha=.75)
+    plt.scatter(p_range, cold_MaxCutProb, linestyle="None", marker="x", color="b", label="cold mean", alpha=.75)
+    plt.legend(loc="best"), plt.xlabel("p"), plt.ylabel("MaxCut Probabilityin %"), plt.title(
         "MaxCut Probability")
     plt.savefig("results/warmstartEnergy-"+datetime.now().strftime("%Y-%m-%d_%H-%M")+".png", format="png")
     plt.show()
@@ -477,7 +503,7 @@ def compareEpsilon(graph, epsilon_range):
 graph = GraphGenerator.genWarmstartPaperGraph()
 # GraphPlotter.plotGraph(nx.Graph(graph))
 
-compareWarmStartEnergy(graph, [1, 2, 3, 4,5,6 ], initialCut = [[0,0,1,1,1,1], 23], knownMaxCut = 27)
+compareWarmStartEnergy(graph, [1,2,3 ], initialCut = [[0,0,1,1,1,1], 23], knownMaxCut = 27)
 # compareOptimizerEnergy(graph, [1], ["Cobyla", "TNC"])  #TNC
 # compareOptimizerEnergy(graph, [1,2], ["Cobyla", "Powell"])
 # compareEpsilon(graph, np.arange(0.0, 0.51, 0.05))
