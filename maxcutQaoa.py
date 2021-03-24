@@ -26,8 +26,8 @@ def cost_function_C(x, G):
     C_total = 0
     for i in range(n_vertices):
         for j in range(1,n_vertices):
-            if i < j and graph[i,j] != 0:
-                w = graph[i,j]
+            if i < j and G[i,j] != 0:
+                w = G[i,j]
                 if(x[i] != x[j]):
                     C += w
                 C_total += w
@@ -39,8 +39,8 @@ def totalCost(G):
     C_total = 0
     for i in range(n_vertices):
         for j in range(1,n_vertices):
-            if i < j and graph[i,j] != 0:
-                w = graph[i,j]
+            if i < j and G[i,j] != 0:
+                w = G[i,j]
                 C_total += w
     return C_total/2
 
@@ -345,7 +345,7 @@ def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None
 # graph = GraphGenerator.genFullyConnectedGraph(5)
 # graph = GraphGenerator.genMustyGraph()
 # graph = GraphGenerator.genRandomGraph(5,6)
-graph = GraphGenerator.genWarmstartPaperGraph()
+# graph = GraphGenerator.genWarmstartPaperGraph()
 # GraphPlotter.plotGraph(nx.Graph(graph))
 
 # compareWarmStartEnergy(graph, [1,2,3 ], initialCut = [[0,0,1,1,1,1], 23], knownMaxCut = 27)
