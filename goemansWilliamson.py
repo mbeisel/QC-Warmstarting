@@ -31,7 +31,7 @@ def bestGWcuts(graph, n_GW_cuts, n_best, cost_fun=None, continuous=False, epsilo
 
     GW_cuts = np.array(GW_cuts, dtype=object)
     GW_cuts = GW_cuts[GW_cuts[:, 1].argsort()]
-    GW_cuts = GW_cuts[n_GW_cuts - n_best:]
+    GW_cuts = GW_cuts[-n_best:]
     return GW_cuts
 
 def continuousGWsolve(graph):
