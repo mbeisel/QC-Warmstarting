@@ -7,7 +7,7 @@ from qiskit.visualization import plot_histogram
 from QAOACircuitGenerator import QAOACircuitGenerator
 from graphGenerator import GraphPlotter
 
-
+# Compute the value of the cost function
 def cost_function_C(x, G):
     n_vertices = G.shape[0]
 

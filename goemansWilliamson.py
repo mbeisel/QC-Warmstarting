@@ -5,7 +5,7 @@ from helperFunctions import epsilonFunction
 from copy import deepcopy
 import numpy as np
 
-def bestGWcuts(graph, n_GW_cuts, n_best, cost_fun=None, continuous=False, epsilon=0.25):
+def bestGWcuts(graph, n_GW_cuts, n_best, cost_fun=None, continuous=False, epsilon=0.25, allow_duplicates=False):
     # returns n_best best cuts out of n_GW_cuts to be computed
     if n_best > n_GW_cuts:
         raise Exception("n_best has to be less or equal to n_GW_cuts")
@@ -25,8 +25,9 @@ def bestGWcuts(graph, n_GW_cuts, n_best, cost_fun=None, continuous=False, epsilo
                 else:
                     approximation_list.append(1)
 
-        GW_cuts.append(
-            [epsilonFunction(deepcopy(approximation_list), epsilon=epsilon), cost_fun(approximation_list, graph) if cost_fun else 0])
+        epsilonizedCut = epsilonFunction(deepcopy(approximation_list), epsilon=epsilon) if epsilon else approximation_list
+        if allow_duplicates or not GW_cuts or not (epsilonizedCut in list(np.array(GW_cuts, dtype=object)[:,0])):
+            GW_cuts.append([epsilonizedCut, cost_fun(approximation_list, graph) if cost_fun else 0])
 
     GW_cuts = np.array(GW_cuts, dtype=object)
     GW_cuts = GW_cuts[GW_cuts[:, 1].argsort()]
