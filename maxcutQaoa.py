@@ -1,5 +1,8 @@
+from copy import deepcopy
+
 import numpy as np
 
+from goemansWilliamson import bestGWcuts
 from graphGenerator import GraphGenerator, GraphPlotter
 from QAOACircuitGenerator import QAOACircuitGenerator
 import matplotlib.pyplot as plt
@@ -19,6 +22,9 @@ from datetime import datetime
 
 
 # Compute the value of the cost function
+from helperFunctions import epsilonFunction
+
+
 def cost_function_C(x, G):
     n_vertices = G.shape[0]
 
@@ -26,8 +32,8 @@ def cost_function_C(x, G):
     C_total = 0
     for i in range(n_vertices):
         for j in range(1,n_vertices):
-            if i < j and graph[i,j] != 0:
-                w = graph[i,j]
+            if i < j and G[i,j] != 0:
+                w = G[i,j]
                 if(x[i] != x[j]):
                     C += w
                 C_total += w
@@ -39,8 +45,8 @@ def totalCost(G):
     C_total = 0
     for i in range(n_vertices):
         for j in range(1,n_vertices):
-            if i < j and graph[i,j] != 0:
-                w = graph[i,j]
+            if i < j and G[i,j] != 0:
+                w = G[i,j]
                 C_total += w
     return C_total/2
 
@@ -264,15 +270,18 @@ def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None
         coldstartMaxCutProb = []
 
         optimizer_options = None  # ({"maxiter": 10})# to limit optimizer iterations
+        optimizer_options = ({"rhobeg": np.pi/2})  # ({"maxiter": 10})# to limit optimizer iterations
+
         for i in range(2, 3):
 
             # bestCutsParams = [gridSearch(objectiveFunction, graph, bestCuts[i,0], p)[0] for i in range(len(bestCuts))]
-            for j in range(3):
+            for j in range(20):
                 bestCut = bestCuts[i,0]
                 if(initialCut):
                     bestCut = epsilonFunction(initialCut[0], epsilon=0.25)
                 print(bestCut)
-                params = np.zeros(2 * p)  # np.random.default_rng().uniform(0, np.pi, size=2*p)
+                params = np.zeros(2 * p)
+                params = np.random.default_rng().uniform(0, np.pi, size=2*p)
                 params_warm_optimized = minimize(objectiveFunction, params, method="COBYLA",
                                                  args=(graph, bestCut, p), options=optimizer_options)
                 # plotCircuit(graph, bestCuts[i,0], params_warm_optimized.x, p,)
@@ -328,6 +337,7 @@ def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None
     plt.legend(loc="best"), plt.xlabel("p"), plt.ylabel("Energy"), plt.title("Warm-started QAOA comparison")
     plt.savefig("results/warmstartEnergy-"+datetime.now().strftime("%Y-%m-%d_%H-%M")+".png", format="png")
     plt.show()
+    plt.close()
 
     #probabilitygraph
     warm_MaxCutProb_Values = np.array(warm_MaxCutProb_Values)
@@ -340,6 +350,7 @@ def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None
         "MaxCut Probability")
     plt.savefig("results/warmstartEnergy-"+datetime.now().strftime("%Y-%m-%d_%H-%M")+".png", format="png")
     plt.show()
+    plt.close()
 
 def compareEpsilon(graph, epsilon_range):
     warm_means = []
@@ -390,13 +401,14 @@ def compareEpsilon(graph, epsilon_range):
 
 # graph = GraphGenerator.genButterflyGraph()
 # graph = GraphGenerator.genGridGraph(4,4)
-# graph = GraphGenerator.genFullyConnectedGraph(5)
+# graph = GraphGenerator.genFullyConnectedGraph(17)
 # graph = GraphGenerator.genMustyGraph()
 # graph = GraphGenerator.genRandomGraph(5,6)
 graph = GraphGenerator.genWarmstartPaperGraph()
 # GraphPlotter.plotGraph(nx.Graph(graph))
 
 compareWarmStartEnergy(graph, [1,2,3 ], initialCut = [[0,0,1,1,1,1], 23], knownMaxCut = 27)
+# compareWarmStartEnergy(graph, [1,2,3 ])
 # compareOptimizerEnergy(graph, [1], ["Cobyla", "TNC"])  #TNC
 # compareOptimizerEnergy(graph, [1,2], ["Cobyla", "Powell"])
 # compareEpsilon(graph, np.arange(0.0, 0.51, 0.05))
