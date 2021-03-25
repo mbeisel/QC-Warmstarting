@@ -6,23 +6,22 @@ from maxcutQaoa import objectiveFunction, objectiveFunctionBest, cost_function_C
 import numpy as np
 import matplotlib.pyplot as plt
 from graphGenerator import GraphGenerator
+from graphStorage import GraphStorage
 from datetime import datetime
 
-def compareEpsilon(graph, epsilon_range):
+def compareEpsilon(graph, rawBestCuts, epsilon_range):
     warm_means = []
     warm_means_energy = []
     warm_dev = []
     warm_energies = []
 
-    RawBestCuts = bestGWcuts(graph, 3, 3, continuous=False, epsilon=0, cost_fun=cost_function_C)  # get raw solutions using epsilon = 0
-    print(RawBestCuts)
     p = 1
 
     epsilon_range = list(epsilon_range)
     for eps in epsilon_range:
         warmstart_cutsize = []
         warmstart_energy = []
-        bestCuts = np.array([[epsilonFunction(cut[0], eps), cut[1]] for cut in deepcopy(RawBestCuts)], dtype=object)
+        bestCuts = np.array([[epsilonFunction(cut[0], eps), cut[1]] for cut in deepcopy(rawBestCuts)], dtype=object)
 
         #bestCutsParams = [gridSearch(objectiveFunction, graph, bestCuts[i,0], p, step_size=0.2, show_plot=False)[0] for i in range(1)]
         optimizer_options = ({"rhobeg": 0.2, "disp": False})#, "maxiter": 10})# to limit optimizer iterations
@@ -44,6 +43,8 @@ def compareEpsilon(graph, epsilon_range):
 
     print(warmstart_cutsize)
     print(warm_means)
+    print(warm_energies)
+    print(warm_means_energy)
     warm_dev = np.array(warm_dev)
     warm_energies = np.array(warm_energies)
     plt.scatter(warm_dev[:,0], warm_dev[:,1], marker=".", color='gray', label="single cut")
@@ -54,5 +55,14 @@ def compareEpsilon(graph, epsilon_range):
     plt.savefig("results/epsilons-"+datetime.now().strftime("%Y-%m-%d_%H-%M")+".png", format="png")
     plt.close()
 
-graph = GraphGenerator.genWarmstartPaperGraph()
-compareEpsilon(graph, np.arange(0.0, 0.50, 0.25))
+# graph = GraphGenerator.genFullyConnectedGraph(20)
+# cuts = bestGWcuts(graph, 10, 5, continuous=False, epsilon=0.0, cost_fun=cost_function_C)  # get raw solutions using epsilon = 0
+# GraphStorage.store("graphs/fullyConnected-20-graph.txt", graph)
+# GraphStorage.storeGWcuts("graphs/fullyConnected-20-cuts.txt", cuts)
+
+graph_loaded = GraphStorage.load("graphs/fullyConnected-20-graph.txt")
+cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-20-cuts.txt")
+
+print(graph_loaded.data)
+print(cuts_loaded)
+compareEpsilon(graph_loaded, cuts_loaded, np.arange(0.0, 0.50, 0.25))
