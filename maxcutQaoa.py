@@ -40,7 +40,7 @@ def runQaoa(input, Graph, approximation_List, p):
     shots = 2000
     QAOA = QAOACircuitGenerator.genQaoaMaxcutCircuit(Graph, input, approximation_List, p)
     TQAOA = transpile(QAOA, backend)
-    qobj = assemble(TQAOA)
+    # qobj = assemble(TQAOA)
     QAOA_results = execute(QAOA, backend, shots=shots).result()
     return QAOA_results
 
@@ -67,7 +67,12 @@ def compute_costs(QAOA_results, G, knownMaxCut = None, showHistogram=False):
     allCosts = np.array([cost_function_C(parseSolution(x), G) for x, _ in z])
     allCostsWeightedByNumberOfOccurances = np.array([allCosts[i] * z[i][1] for i in range(len(z))])
 
+    #with offset
     M1_sampled = (   np.sum(allCostsWeightedByNumberOfOccurances) / np.sum(list(counts.values()))  ) - totalCost(G)
+
+    #without offset
+    # M1_sampled = (   np.sum(allCostsWeightedByNumberOfOccurances) / np.sum(list(counts.values()))  )
+
     max_C[1] = np.amax(allCosts)
     max_C[0] = parseSolution(z[np.where(allCosts == max_C[1])[0][0]][0])
 
@@ -115,7 +120,9 @@ def plotCircuit(G, approximation_List, params, p, backend=None):
         plt.show()
 
 
-def objectiveFunction(input, Graph, approximation_List, p, showHistogram=False):
+def objectiveFunction(input, Graph, approximation_List, p, mixedOptimizerVars = None, showHistogram=False):
+    if mixedOptimizerVars:
+        input = mixedOptimizerVars + (list(input))
     results = runQaoa(input, Graph, approximation_List, p)
     costs, _, _, _ = compute_costs(results, Graph, showHistogram)
     return - costs
