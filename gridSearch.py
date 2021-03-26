@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
@@ -26,15 +28,19 @@ def gridSearch(objective_fun, Graph, approximation_List, p, gamma_step_size=0.5,
     for i in range(len(a_gamma)):
         if(p > 1):
             optimizer_options = ({"rhobeg": np.pi/2})
-            params = np.random.uniform(0, np.pi, size=2*(p-1))
+            # params = np.random.uniform(0, np.pi, size=2*(p-1))
+            params = [0,0] * (p-1)
             optimizedparams = minimize(objectiveFunction, params, method="COBYLA",
                                              args=(graph, approximation_List, p, [a_gamma[i], a_beta[i]]), options=optimizer_options)
             optimizedparams = [a_gamma[i], a_beta[i]] + list(optimizedparams.x)
-            print("opt{}".format(optimizedparams))
-            F1.append(objective_fun(optimizedparams, Graph, approximation_List, p))
+
+            energy, bestCut, maxCutChance = objectiveFunctionBest(optimizedparams, Graph, approximation_List, p, 27)
+            print("opt{}, energy {} bestCut {}, probability {}".format(optimizedparams,energy, bestCut, maxCutChance ))
+            F1.append(energy)
         else:
             F1.append(objective_fun([a_gamma[i], a_beta[i]], Graph, approximation_List, p))
         print("Current Step: {}".format(i+1)) if (i + 1) % 10 == 0 else None
+
     F1 = np.array(F1)
 
     # Grid search for the minimizing variables
@@ -63,6 +69,7 @@ def gridSearch(objective_fun, Graph, approximation_List, p, gamma_step_size=0.5,
     else:
         plt.show()
 
+
     return [gamma, beta], np.amin(F1)
 
 # from graphGenerator import GraphGenerator
@@ -76,13 +83,14 @@ cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-12-cuts.txt")
 epsilon = 0.25
 cuts_loaded = np.array([[epsilonFunction(cut[0], epsilon), cut[1]] for cut in cuts_loaded], dtype=object)
 
+
 print(cuts_loaded)
 print("Selected GWCut {}".format(cuts_loaded[0]))
 
 filename = "results/Gridsearch-"+datetime.now().strftime("%Y-%m-%d_%H-%M")+".png"
 params, min_energy = gridSearch(objectiveFunction, graph_loaded, cuts_loaded[0][0], 1,
-                                gamma_step_size=0.1, gammaStart=0, gammaEnd=2*np.pi,
-                                beta_step_size=0.1, betaStart=0, betaEnd=np.pi,
+                                gamma_step_size=1, gammaStart=0, gammaEnd=2*np.pi,
+                                beta_step_size=1, betaStart=0, betaEnd=np.pi,
                                 fname=filename)
 print(params)
 print(min_energy)

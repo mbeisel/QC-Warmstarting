@@ -82,11 +82,11 @@ def compute_costs(QAOA_results, G, knownMaxCut = None, showHistogram=False):
 
     if (knownMaxCut):
         tupels = np.array(z)[np.where(allCosts == knownMaxCut)]
-        print(tupels)
+        # print(tupels)
         max_Cut_Probability = np.sum([int(tuple[1])  for tuple in tupels])
-        print(max_Cut_Probability)
+        # print(max_Cut_Probability)
         max_Cut_Probability = max_Cut_Probability/np.sum(list(counts.values()))
-        print(max_Cut_Probability)
+        # print(max_Cut_Probability)
 
     if (showHistogram):
         plot_histogram(counts)
@@ -124,7 +124,7 @@ def objectiveFunction(input, Graph, approximation_List, p, mixedOptimizerVars = 
     if mixedOptimizerVars:
         input = mixedOptimizerVars + (list(input))
     results = runQaoa(input, Graph, approximation_List, p)
-    costs, _, _, _ = compute_costs(results, Graph, showHistogram)
+    costs, _, _, _ = compute_costs(results, Graph, showHistogram=showHistogram)
     return - costs
 
 
