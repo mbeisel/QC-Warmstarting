@@ -1,4 +1,5 @@
 from graphGenerator import GraphGenerator
+from graphStorage import GraphStorage
 from helperFunctions import epsilonFunction
 from goemansWilliamson import bestGWcuts
 from copy import deepcopy
@@ -37,7 +38,7 @@ def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None
         optimizer_options = None  # ({"maxiter": 10})# to limit optimizer iterations
         optimizer_options = ({"rhobeg": np.pi/2})  # ({"maxiter": 10})# to limit optimizer iterations
 
-        for i in range(2, 3):
+        for i in range(0, 1):
 
             # bestCutsParams = [gridSearch(objectiveFunction, graph, bestCuts[i,0], p)[0] for i in range(len(bestCuts))]
             for j in range(20):
@@ -66,12 +67,13 @@ def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None
                 coldstart.append(energyCold)
             print("{:.2f}%".format(100 * (i + 1 + 5 * p_range.index(p)) / (len(p_range) * 5)))
 
-        warm_MaxCutProb.append(np.mean(warmstartMaxCutProb)*100)
-        cold_MaxCutProb.append(np.mean(coldstartMaxCutProb)*100)
+        warm_MaxCutProb.append(np.median(warmstartMaxCutProb)*100)
+        cold_MaxCutProb.append(np.median(coldstartMaxCutProb)*100)
         warm_MaxCutProb_Values.append([[p for i in range(len(warmstartMaxCutProb))], np.array(warmstartMaxCutProb)*100])
         cold_MaxCutProb_Values.append([[p for i in range(len(coldstartMaxCutProb))], np.array(coldstartMaxCutProb)*100])
-        warm_means.append(np.mean(warmstart))
-        cold_means.append(np.mean(coldstart))
+        # TODO mean vs median
+        warm_means.append(np.median(warmstart))
+        cold_means.append(np.median(coldstart))
         warm_value_list.append([[p for i in range(len(warmstart))], warmstart])
         cold_value_list.append([[p for i in range(len(coldstart))], coldstart])
         warm_max.append(np.min(warmstart))
@@ -97,7 +99,7 @@ def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None
         usedCut = initialCut[1]
     plt.plot([np.min(p_range), np.max(p_range)], [usedCut -offset, usedCut-offset], linestyle="dashed",
              label="used GW-Cut")
-    plt.plot([np.min(p_range), np.max(p_range)], [bestCuts[-1, 1]-offset, bestCuts[-1, 1]-offset], linestyle="dashed",
+    plt.plot([np.min(p_range), np.max(p_range)], [knownMaxCut-offset, knownMaxCut-offset], linestyle="dashed",
              label="best GW-Cut")
     plt.legend(loc="best"), plt.xlabel("p"), plt.ylabel("Energy"), plt.title("Warm-started QAOA comparison")
     plt.savefig("results/warmstartEnergy-"+datetime.now().strftime("%Y-%m-%d_%H-%M")+".png", format="png")
@@ -113,7 +115,7 @@ def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None
     plt.scatter(p_range, cold_MaxCutProb, linestyle="None", marker="x", color="b", label="cold mean", alpha=.75)
     plt.legend(loc="best"), plt.xlabel("p"), plt.ylabel("MaxCut Probabilityin %"), plt.title(
         "MaxCut Probability")
-    plt.savefig("results/warmstartEnergy-"+datetime.now().strftime("%Y-%m-%d_%H-%M")+".png", format="png")
+    plt.savefig("results/warmstartEnergyProbability-"+datetime.now().strftime("%Y-%m-%d_%H-%M")+".png", format="png")
     plt.show()
     plt.close()
 
@@ -122,10 +124,18 @@ def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None
 # graph = GraphGenerator.genFullyConnectedGraph(17)
 # graph = GraphGenerator.genMustyGraph()
 # graph = GraphGenerator.genRandomGraph(5,6)
-graph = GraphGenerator.genWarmstartPaperGraph()
+# graph = GraphGenerator.genWarmstartPaperGraph()
 # GraphPlotter.plotGraph(nx.Graph(graph))
 
-compareWarmStartEnergy(graph, [1,2,3 ], initialCut = [[0,0,1,1,1,1], 23], knownMaxCut = 27)
+graph_loaded = GraphStorage.load("graphs/fullyConnected-6-paperversion-graph.txt")
+cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-6-paperversion-cuts.txt")
+epsilon = 0.25
+cuts_loaded = np.array([[epsilonFunction(cut[0], epsilon), cut[1]] for cut in cuts_loaded], dtype=object)
+
+
+print(cuts_loaded)
+
+compareWarmStartEnergy(graph_loaded, [1,2,3 ], initialCut = [[0,0,1,1,1,1], 23], knownMaxCut = 27)
 # compareWarmStartEnergy(graph, [1,2,3 ])
 
 # GraphPlotter.plotGraph(graph, fname="results/graph-"+datetime.now().strftime("%Y-%m-%d_%H-%M")+".png")
