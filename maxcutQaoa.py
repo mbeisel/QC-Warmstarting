@@ -13,8 +13,9 @@ def cost_function_C(x, G):
 
     C = 0
     for i in range(n_vertices):
-        for j in range(i-1):
+        for j in range(i):
             C += G[i,j] * (not x[i] == x[j])
+
     return C
 
 def totalCost(G):
