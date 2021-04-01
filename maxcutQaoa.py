@@ -11,16 +11,10 @@ from graphGenerator import GraphPlotter
 def cost_function_C(x, G):
     n_vertices = G.shape[0]
 
-    C = 0;
-    C_total = 0
+    C = 0
     for i in range(n_vertices):
-        for j in range(1,n_vertices):
-            if i < j and G[i,j] != 0:
-                w = G[i,j]
-                if(x[i] != x[j]):
-                    C += w
-                C_total += w
-                # C += w * x[i] * (1 - x[j]) + w * x[j] * (1 - x[i])
+        for j in range(i-1):
+            C += G[i,j] * (not x[i] == x[j])
     return C
 
 def totalCost(G):
