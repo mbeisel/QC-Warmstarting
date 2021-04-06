@@ -17,6 +17,19 @@ class GraphGenerator():
         return nx.adjacency_matrix(G)
 
     @classmethod
+    def genDiamondGraph(cls):
+        # Generating the diamond graph with 4 nodes
+        n = 4
+        V = np.arange(0,n,1)
+        E =[(0,1,1.0),(0,2,1.0),(0,3,1.0),(1,2,1.0),(2,3,1.0)]
+
+        G = nx.Graph()
+        G.add_nodes_from(V)
+        G.add_weighted_edges_from(E)
+
+        return nx.adjacency_matrix(G)
+
+    @classmethod
     def genGridGraph(cls, height, width):
         # Generating the grid graph
 

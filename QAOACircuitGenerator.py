@@ -31,9 +31,23 @@ class QAOACircuitGenerator():
                 for j in range(n_vertices -1):
                     if i > j and graph[i,j] != 0:
                         # print(graph[i,j])
-                        QAOA.cp(-2*gammas[iter]*graph[i,j], i, j)
-                        QAOA.p(gammas[iter], i)
-                        QAOA.p(gammas[iter], j)
+                        #pennylane
+                        QAOA.cx(i, j)
+                        QAOA.rz(-gammas[iter]*graph[i,j], j)
+                        QAOA.cx(i, j)
+                        # controlled z instead of phase
+                        # QAOA.crz(-gammas[iter]*graph[i,j], i, j)
+                        # QAOA.rz(gammas[iter], i)
+                        # QAOA.rz(gammas[iter], j)
+                        #google
+                        # QAOA.rzz( -2* gammas[iter]*graph[i,j],i, j)
+                        #testattempt
+                        # QAOA.rz(gammas[iter], i)
+                        # QAOA.rz(gammas[iter], j)
+                        # original attempt
+                        # QAOA.cp(-2*gammas[iter]*(graph[i,j] ), i, j)
+                        # QAOA.p(gammas[iter]*1*(graph[i,j] ), i)
+                        # QAOA.p(gammas[iter]*1*(graph[i,j] ), j)
 
             # then apply the single qubit X rotations with angle beta to all qubits
             QAOA.barrier()
