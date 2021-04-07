@@ -41,30 +41,40 @@ def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None
         for i in range(0, 1):
 
             # bestCutsParams = [gridSearch(objectiveFunction, graph, bestCuts[i,0], p)[0] for i in range(len(bestCuts))]
-            for j in range(30):
+            for j in range(2):
                 bestCut = bestCuts[i,0]
                 if(initialCut):
                     bestCut = epsilonFunction(initialCut[0], epsilon=0.25)
                 print(bestCut)
                 params = np.zeros(2 * p)
                 params = np.random.default_rng().uniform(0, np.pi, size=2*p)
-                params_warm_optimized = minimize(objectiveFunction, params, method="COBYLA",
-                                                 args=(graph, bestCut, p), options=optimizer_options)
-                # plotCircuit(graph, bestCuts[i,0], params_warm_optimized.x, p,)
-                params_cold_optimized = minimize(objectiveFunction, params, method="COBYLA", args=(graph, None, p),
-                                                 options=optimizer_options)
-                energyWarm, cutWarm, maxCutChanceWarm = objectiveFunctionBest(params_warm_optimized.x, graph, bestCut, p,
-                                                                              knownMaxCut= knownMaxCut,
-                                                                              showHistogram=False)
-                warmstart.append(energyWarm)
-                warmstartMaxCutProb.append(maxCutChanceWarm)
-                print("maxcutchance {}".format(maxCutChanceWarm))
-                energyCold, cutCold, maxCutChanceCold = objectiveFunctionBest(params_cold_optimized.x, graph, None, p,
-                                                                              knownMaxCut= knownMaxCut,
-                                                                              showHistogram=False)
-                print("maxcutchancecold {}".format(maxCutChanceCold))
-                coldstartMaxCutProb.append(maxCutChanceCold)
-                coldstart.append(energyCold)
+                energyWarmList, cutWarmList, maxCutChanceWarmList, energyColdList, cutColdList, maxCutChanceColdList = [], [], [], [], [], []
+                for k in range(1):
+                    params_warm_optimized = minimize(objectiveFunction, params, method="COBYLA",
+                                                     args=(graph, bestCut, p), options=optimizer_options)
+                    # plotCircuit(graph, bestCuts[i,0], params_warm_optimized.x, p,)
+                    params_cold_optimized = minimize(objectiveFunction, params, method="COBYLA", args=(graph, None, p),
+                                                     options=optimizer_options)
+                    energyWarm, cutWarm, maxCutChanceWarm = objectiveFunctionBest(params_warm_optimized.x, graph, bestCut, p,
+                                                                                  knownMaxCut= knownMaxCut,
+                                                                                  showHistogram=False)
+                    energyCold, cutCold, maxCutChanceCold = objectiveFunctionBest(params_cold_optimized.x, graph, None, p,
+                                                                                  knownMaxCut= knownMaxCut,
+                                                                                  showHistogram=False)
+                    energyWarmList.append(energyWarm)
+                    cutWarmList.append(cutWarm)
+                    maxCutChanceWarmList.append(maxCutChanceWarm)
+                    energyColdList.append(energyCold)
+                    cutColdList.append(cutCold)
+                    maxCutChanceColdList.append(maxCutChanceCold)
+                print(energyWarmList)
+                warmstart.append(np.max(energyWarmList))
+                warmstartMaxCutProb.append(np.max(maxCutChanceWarmList))
+                print("maxcutchance {}".format(np.max(maxCutChanceWarmList)))
+
+                print("maxcutchancecold {}".format(np.max(maxCutChanceColdList)))
+                coldstartMaxCutProb.append(np.max(maxCutChanceColdList))
+                coldstart.append(np.max(energyColdList))
             print("{:.2f}%".format(100 * (i + 1 + 5 * p_range.index(p)) / (len(p_range) * 5)))
 
         warm_MaxCutProb.append(np.median(warmstartMaxCutProb)*100)
@@ -144,7 +154,7 @@ def coldStartQAOA(graph, p_range, knownMaxCut = None):
         for i in range(0, 1):
 
             # bestCutsParams = [gridSearch(objectiveFunction, graph, bestCuts[i,0], p)[0] for i in range(len(bestCuts))]
-            for j in range(10):
+            for j in range(2):
                 params = np.zeros(2 * p)
                 params = np.random.default_rng().uniform(0, np.pi, size=2*p)
                                # plotCircuit(graph, bestCuts[i,0], params_warm_optimized.x, p,)
@@ -231,7 +241,7 @@ cuts_loaded = np.array([[epsilonFunction(cut[0], epsilon), cut[1]] for cut in cu
 print(cuts_loaded)
 
 # compareWarmStartEnergy(graph_loaded, [1,2,3,4,5 ], initialCut = [[0,1,0,1], 4], knownMaxCut = 4)
-# compareWarmStartEnergy(graph_loaded, [1,2,3 ], initialCut = [[0,0,1,1,1,1], 23], knownMaxCut = 27)
+compareWarmStartEnergy(graph_loaded, [1,2 ], initialCut = [[0,0,1,1,1,1], 23], knownMaxCut = 27)
 # coldStartQAOA(graph_loaded, [1,2,3], knownMaxCut=4)
 
 
