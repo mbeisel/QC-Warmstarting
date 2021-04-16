@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from graphGenerator import GraphGenerator
 from graphStorage import GraphStorage
 from datetime import datetime
+import os
 
 def compareEpsilon(graph, rawBestCuts, epsilon_range, knownMaxCut=None):
     warm_means = []
@@ -16,6 +17,7 @@ def compareEpsilon(graph, rawBestCuts, epsilon_range, knownMaxCut=None):
     warm_dev = []
     warm_energies = []
     warm_probs = []
+    rawResults = []
 
     p = 1
 
@@ -38,11 +40,12 @@ def compareEpsilon(graph, rawBestCuts, epsilon_range, knownMaxCut=None):
                 warmstart_energy.append(energy)
                 warmstart_prob.append(maxCutChance)
                 print("params optimized: {} -> {}, energy measured: {}, cutsize: {}, max cut prob: {}".format(params, params_warm_optimized.x, warmstart_energy[-1], warmstart_cutsize[-1], maxCutChance))
+                rawResults.append("{};{};{};{};{}".format(eps, bestCuts[i,0], energy, bestCut, maxCutChance))
             print("{:.2f}%".format(100*(i+1+5*epsilon_range.index(eps))/(len(epsilon_range)*5)))
 
         warm_means.append(np.median(warmstart_cutsize))
         warm_means_energy.append(np.median(warmstart_energy))
-        warm_means_prob.append(np.median(warmstart_prob))
+        warm_means_prob.append(np.mean(warmstart_prob))
         warm_dev.append([[eps for i in range(len(warmstart_cutsize))], warmstart_cutsize])
         warm_energies.append([[eps for i in range(len(warmstart_energy))], warmstart_energy])
         warm_probs.append([[eps for i in range(len(warmstart_energy))], warmstart_prob])
@@ -64,22 +67,38 @@ def compareEpsilon(graph, rawBestCuts, epsilon_range, knownMaxCut=None):
 
     ax2 = ax.twinx()
     ax2.scatter(warm_probs[:,0], warm_probs[:,1], marker=".", color="palegreen", label="single probability", alpha=.5)
-    ax2.scatter(epsilon_range, warm_means_prob, marker="v", color="green", label="median probability", alpha=.5)
+    ax2.scatter(epsilon_range, warm_means_prob, marker="v", color="green", label="mean probability", alpha=.5)
     fig.subplots_adjust(bottom=0.22), fig.legend(loc="lower center", ncol=3), ax2.set_ylabel("max cut probability")
 
-    plt.savefig("results/epsilons-"+datetime.now().strftime("%Y-%m-%d_%H-%M")+".png", format="png")
+    add_to_name = "_"+str(len(bestCuts[0][0]))
+    time =  datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + add_to_name
+    path = os.getcwd() + "/results/" + time
+    print ("The current working directory is %s" % path)
+    try:
+        os.mkdir(path)
+    except OSError:
+        print ("Creation of the directory %s failed" % path)
+    else:
+        print ("Successfully created the directory %s " % path)
+
+    plt.savefig(path + "/epsilon"+add_to_name+".pdf", bbox_inches="tight")
+    plt.savefig(path + "/epsilon"+add_to_name+".png", bbox_inches="tight")
     plt.close()
+
+    rawResultsFile = open(path + "/raw"+add_to_name+".log", "w")
+    rawResultsFile.write("\n".join(rawResults))
+    rawResultsFile.close()
 
 # graph = GraphGenerator.genFullyConnectedGraph(20)
 # cuts = bestGWcuts(graph, 10, 5, continuous=False, epsilon=0.0, cost_fun=cost_function_C)  # get raw solutions using epsilon = 0
 # GraphStorage.store("graphs/fullyConnected-20-graph.txt", graph)
 # GraphStorage.storeGWcuts("graphs/fullyConnected-20-cuts.txt", cuts)
 
-graph_loaded = GraphStorage.load("graphs/fullyConnected-20-graph.txt")
-cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-20-cuts.txt")
-maxcut = 172
+graph_loaded = GraphStorage.load("graphs/fullyConnected-6-paperversion-graph.txt")
+cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-6-paperversion-cuts.txt")
+maxcut = 27
 
 print(graph_loaded.data)
 print(cuts_loaded)
 
-compareEpsilon(graph_loaded, cuts_loaded[:1], np.arange(0.0, 0.51, 0.125), knownMaxCut=maxcut)
+compareEpsilon(graph_loaded, cuts_loaded[:3], np.arange(0.0, 0.51, 0.25), knownMaxCut=maxcut)
