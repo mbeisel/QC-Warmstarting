@@ -32,7 +32,7 @@ def totalCost(G):
 def runQaoa(input, Graph, approximation_List, p):
     # run on local simulator
     backend = Aer.get_backend("qasm_simulator")
-    shots = 2000
+    shots = 5000
     QAOA = QAOACircuitGenerator.genQaoaMaxcutCircuit(Graph, input, approximation_List, p)
     TQAOA = transpile(QAOA, backend)
     # qobj = assemble(TQAOA)
@@ -74,8 +74,19 @@ def compute_costs(QAOA_results, G,inputCut = None, knownMaxCut = None, showHisto
     #     M1_sampled =  np.sum(np.array([allCosts[i] * z[i][1] if allCosts[i] > inputCut else 0 for i in range(len(z))]))
 
     # ENERGY BASED ON ONLY BETTER RESULTS ONLY REWARD GOOD RESULTS PUNISH BAD ONES
+    # if inputCut:
+    #     M1_sampled =  np.sum(np.array([allCosts[i] * z[i][1] if allCosts[i] > inputCut else -(allCosts[i] * z[i][1])/50 for i in range(len(z))]))
+
+    # Exclude initial cut from Energyfunction
     if inputCut:
-        M1_sampled =  np.sum(np.array([allCosts[i] * z[i][1] if allCosts[i] > inputCut else -(allCosts[i] * z[i][1])/50 for i in range(len(z))]))
+        M1_sampled =  np.sum(np.array([allCosts[i] * z[i][1] if allCosts[i] != inputCut else 0 for i in range(len(z))]))
+        n_samples = np.sum(np.array([z[i][1] if allCosts[i] != inputCut else 0 for i in range(len(z))]))
+        if n_samples > 0:
+            M1_sampled = M1_sampled/n_samples
+
+    # ENERGY BASED ON ONLY BETTER RESULTS ONLY REWARD GOOD RESULTS - EXTRA REWARDS FOR BEST RESULT
+    # if inputCut:
+    #     M1_sampled =  np.sum(np.array([(allCosts[i] * z[i][1] if allCosts[i] != np.max(allCosts) else (allCosts[i] * z[i][1])*10 ) if allCosts[i] > inputCut else 0 for i in range(len(z))]))
 
     print(M1_sampled)
     max_C[1] = np.amax(allCosts)
