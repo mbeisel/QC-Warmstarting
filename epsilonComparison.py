@@ -29,13 +29,13 @@ def compareEpsilon(graph, rawBestCuts, epsilon_range, knownMaxCut=None):
         bestCuts = np.array([[epsilonFunction(cut[0], eps), cut[1]] for cut in deepcopy(rawBestCuts)], dtype=object)
 
         #bestCutsParams = [gridSearch(objectiveFunction, graph, bestCuts[i,0], p, step_size=0.2, show_plot=False)[0] for i in range(1)]
-        optimizer_options = ({"rhobeg": 0.2, "disp": False})#, "maxiter": 10})# to limit optimizer iterations
+        optimizer_options = None# ({"rhobeg": 0.2, "disp": False})#, "maxiter": 10})# to limit optimizer iterations
         for i in range(len(bestCuts)):
             print(bestCuts[i])
             for j in range(3):
                 params = [0, np.pi/2]
-                params_warm_optimized = minimize(objectiveFunction, params, method="COBYLA", args=(graph, bestCuts[i,0], p), options=optimizer_options)
-                energy, bestCut, maxCutChance = objectiveFunctionBest(params_warm_optimized.x, graph, bestCuts[i,0], p, knownMaxCut=knownMaxCut)
+                params_warm_optimized = minimize(objectiveFunction, params, method="COBYLA", args=(graph, bestCuts[i,0], p, None, bestCuts[i,1]), options=optimizer_options)
+                energy, bestCut, maxCutChance = objectiveFunctionBest(params_warm_optimized.x, graph, bestCuts[i,0], p, inputCut=bestCuts[i,1], knownMaxCut=knownMaxCut)
                 warmstart_cutsize.append(bestCut)
                 warmstart_energy.append(energy)
                 warmstart_prob.append(maxCutChance)
