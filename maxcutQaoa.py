@@ -40,7 +40,7 @@ def runQaoa(input, Graph, approximation_List, p):
     return QAOA_results
 
 
-def compute_costs(QAOA_results, G,inputCut = None, knownMaxCut = None, showHistogram=False):
+def compute_costs(QAOA_results, G,inputCut = None, knownMaxCut = None, method = 2,showHistogram=False):
     # Evaluate the data from the simulator
     counts = QAOA_results.get_counts()
     max_C = [0, 0, 0]
@@ -70,23 +70,35 @@ def compute_costs(QAOA_results, G,inputCut = None, knownMaxCut = None, showHisto
     # M1_sampled = (   np.sum(allCostsWeightedByNumberOfOccurances) / np.sum(list(counts.values()))  )
 
     # ENERGY BASED ON ONLY BETTER RESULTS ONLY REWARD GOOD RESULTS
-    # if inputCut:
-    #     M1_sampled =  np.sum(np.array([allCosts[i] * z[i][1] if allCosts[i] > inputCut else 0 for i in range(len(z))]))
+    if inputCut and method == 0:
+        M1_sampled =  np.sum(np.array([allCosts[i] * z[i][1] if allCosts[i] > inputCut else 0 for i in range(len(z))]))
 
     # ENERGY BASED ON ONLY BETTER RESULTS ONLY REWARD GOOD RESULTS PUNISH BAD ONES
-    # if inputCut:
-    #     M1_sampled =  np.sum(np.array([allCosts[i] * z[i][1] if allCosts[i] > inputCut else -(allCosts[i] * z[i][1])/50 for i in range(len(z))]))
+    if inputCut and method == 1:
+        M1_sampled =  np.sum(np.array([allCosts[i] * z[i][1] if allCosts[i] > inputCut else -(allCosts[i] * z[i][1])/50 for i in range(len(z))]))
 
     # Exclude initial cut from Energyfunction
-    if inputCut:
+    if inputCut and method == 2:
         M1_sampled =  np.sum(np.array([allCosts[i] * z[i][1] if allCosts[i] != inputCut else 0 for i in range(len(z))]))
         n_samples = np.sum(np.array([z[i][1] if allCosts[i] != inputCut else 0 for i in range(len(z))]))
         if n_samples > 0:
             M1_sampled = M1_sampled/n_samples
 
     # ENERGY BASED ON ONLY BETTER RESULTS ONLY REWARD GOOD RESULTS - EXTRA REWARDS FOR BEST RESULT
-    # if inputCut:
-    #     M1_sampled =  np.sum(np.array([(allCosts[i] * z[i][1] if allCosts[i] != np.max(allCosts) else (allCosts[i] * z[i][1])*10 ) if allCosts[i] > inputCut else 0 for i in range(len(z))]))
+    if inputCut and method == 3:
+        "METHOD 3 PRINT ONLY MAX SHOULD BE X10"
+        print(np.max(allCosts))
+        print(list(allCosts))
+        print(list(np.array(z)[:,1]))
+        print([(allCosts[i] * z[i][1] if allCosts[i] != np.max(allCosts) else (allCosts[i] * z[i][1])*10 ) if allCosts[i] > inputCut else 0 for i in range(len(z))])
+        M1_sampled =  np.sum(np.array([(allCosts[i] * z[i][1] if allCosts[i] != np.max(allCosts) else (allCosts[i] * z[i][1])*10 ) if allCosts[i] > inputCut else 0 for i in range(len(z))]))
+
+    # Differenz Methode
+    if inputCut and method == 4:
+        M1_sampled =  np.sum(np.array([(allCosts[i] - inputCut) * z[i][1] for i in range(len(z))]))
+        n_samples = np.sum(list(counts.values()))
+        if n_samples > 0:
+            M1_sampled = M1_sampled/n_samples
 
     print(M1_sampled)
     max_C[1] = np.amax(allCosts)
@@ -136,17 +148,17 @@ def plotCircuit(G, approximation_List, params, p, backend=None):
         plt.show()
 
 
-def objectiveFunction(input, Graph, approximation_List, p, mixedOptimizerVars = None, inputCut = None, showHistogram=False):
+def objectiveFunction(input, Graph, approximation_List, p, mixedOptimizerVars = None, inputCut = None, method = None, showHistogram=False):
     if mixedOptimizerVars:
         input = mixedOptimizerVars + (list(input))
     results = runQaoa(input, Graph, approximation_List, p)
-    costs, _, _, _ = compute_costs(results, Graph, showHistogram=showHistogram, inputCut=inputCut)
+    costs, _, _, _ = compute_costs(results, Graph, showHistogram=showHistogram,  method=method, inputCut=inputCut)
     return - costs
 
 
-def objectiveFunctionBest(input, Graph, approximation_List, p, knownMaxCut = None, inputCut = None, showHistogram=False):
+def objectiveFunctionBest(input, Graph, approximation_List, p, knownMaxCut = None, inputCut = None, method = None, showHistogram=False):
     results = runQaoa(input, Graph, approximation_List, p)
-    energy, _, bestCut, maxCutChance = compute_costs(results, Graph, knownMaxCut=knownMaxCut, showHistogram=showHistogram, inputCut=inputCut)
+    energy, _, bestCut, maxCutChance = compute_costs(results, Graph, knownMaxCut=knownMaxCut, method=method, showHistogram=showHistogram, inputCut=inputCut)
     return energy, bestCut, maxCutChance
 
 
