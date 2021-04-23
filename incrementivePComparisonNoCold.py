@@ -145,7 +145,7 @@ def compareWarmStartEnergyMethods(graph, p_range, initialCut = None, knownMaxCut
         for i in range(0, 1):
             # bestCutsParams = [gridSearch(objectiveFunction, graph, bestCuts[i,0], p)[0] for i in range(len(bestCuts))]
             #optimize j times starting with different startvalues
-            for j in range(5):
+            for j in range(15):
                 bestCut = bestCuts[i,0]
                 if(initialCut):
                     bestCut = epsilonFunction(initialCut[0], epsilon=epsilon)
@@ -153,9 +153,12 @@ def compareWarmStartEnergyMethods(graph, p_range, initialCut = None, knownMaxCut
                 energyWarmList, cutWarmList, maxCutChanceWarmList= [[] for i in range(n_methods)], [[] for i in range(n_methods)], [[] for i in range(n_methods)]
                 for methodCount in range(n_methods):
                     params = np.zeros(2*p)
-                    if(bestParamsForP[methodCount][count-1][0] != 0):
-                        for e in range(p_range[count-1]*2):
-                            params[e] = bestParamsForP[methodCount][count-1][1][e]
+                    params = np.random.default_rng().uniform(0, np.pi, size=2*p)
+
+                    if(p > 1):
+                        if(bestParamsForP[methodCount][count-1][0] != 0):
+                            for e in range(p_range[count-1]*2):
+                                params[e] = bestParamsForP[methodCount][count-1][1][e]
 
 
                     #optimize k times with the same startvalues and take the best
@@ -238,7 +241,7 @@ def compareWarmStartEnergyMethods(graph, p_range, initialCut = None, knownMaxCut
         plt.scatter(p_range, warm_MaxCutProb[methodCount], linestyle="None", marker="x",color = colors(methodCount), alpha=.8)
     plt.legend(loc="best"), plt.xlabel("p"), plt.ylabel("MaxCut Probabilityin %"), plt.title(
         "MaxCut Probability")
-    plt.savefig("results/compareProbabilityMethods-"+datetime.now().strftime("%Y-%m-%d_%H-%M")+".png", format="png")
+    plt.savefig("results/compareProbabilityMethods-"+datetime.now().strftime("%Y-%m-%d_%H-%M")+"_{}_{}.png".format(graph.shape[0], initialCut[1]), format="png")
     plt.show()
     plt.close()
 
@@ -255,8 +258,8 @@ def compareWarmStartEnergyMethods(graph, p_range, initialCut = None, knownMaxCut
 graph_loaded = GraphStorage.load("graphs/fullyConnected-6-paperversion-graph.txt")
 cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-6-paperversion-cuts.txt")
 
-graph_loaded = GraphStorage.load("graphs/fullyConnected-12-graph.txt")
-cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-12-cuts.txt")
+# graph_loaded = GraphStorage.load("graphs/fullyConnected-12-graph.txt")
+# cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-12-cuts.txt")
 
 
 # graph_loaded = GraphGenerator.genDiamondGraph()
@@ -265,11 +268,13 @@ print(cuts_loaded)
 
 # compareWarmStartEnergy(graph_loaded, [1,2,3,4,5 ], initialCut = [[0,1,0,1], 4], knownMaxCut = 4)
 # compareWarmStartEnergy(graph_loaded, [1,2,3], initialCut = [[0,0,1,1,1,1], 23], knownMaxCut = 27, epsilon=0.325)
-# compareWarmStartEnergyMethods(graph_loaded, [1], initialCut = [[0,0,1,1,1,1], 23], knownMaxCut = 27, epsilon=0.325)
+compareWarmStartEnergyMethods(graph_loaded, [1], initialCut = [[0,0,1,1,1,1], 23], knownMaxCut = 27, epsilon=0.325)
 # compareWarmStartEnergy(graph_loaded, [1,2], initialCut = cuts_loaded[0],  knownMaxCut = 95, epsilon=0.325)
 # compareWarmStartEnergyMethods(graph_loaded, [1], initialCut = [[0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0], 88.0],  knownMaxCut = 95, epsilon=0.325)
-compareWarmStartEnergyMethods(graph_loaded, [1], initialCut = cuts_loaded[1],  knownMaxCut = 95, epsilon=0.325)
+# compareWarmStartEnergyMethods(graph_loaded, [1], initialCut = cuts_loaded[1],  knownMaxCut = 95, epsilon=0.325)
 # coldStartQAOA(graph_loaded, [1,2,3], knownMaxCut=4)
+# compareWarmStartEnergyMethods(graph_loaded, [1], initialCut = [[1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0], 78], knownMaxCut = 95, epsilon=0.5)
+
 
 
 # compareWarmStartEnergy(graph_loaded, [1,2,3 ])

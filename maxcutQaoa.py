@@ -65,33 +65,35 @@ def compute_costs(QAOA_results, G,inputCut = None, knownMaxCut = None, method = 
 
     # CLASSIC ENERGY CALCULATION
     #with offset
+
+
     M1_sampled = (   np.sum(allCostsWeightedByNumberOfOccurances) / np.sum(list(counts.values()))  ) - totalCost(G)
     #without offset
     # M1_sampled = (   np.sum(allCostsWeightedByNumberOfOccurances) / np.sum(list(counts.values()))  )
 
     # ENERGY BASED ON ONLY BETTER RESULTS ONLY REWARD GOOD RESULTS
-    if inputCut and method == 0:
+    if inputCut and method == 1:
         M1_sampled =  np.sum(np.array([allCosts[i] * z[i][1] if allCosts[i] > inputCut else 0 for i in range(len(z))]))
 
-    # ENERGY BASED ON ONLY BETTER RESULTS ONLY REWARD GOOD RESULTS PUNISH BAD ONES
-    if inputCut and method == 1:
-        M1_sampled =  np.sum(np.array([allCosts[i] * z[i][1] if allCosts[i] > inputCut else -(allCosts[i] * z[i][1])/50 for i in range(len(z))]))
+    # ENERGY BASED ON ONLY BETTER RESULTS ONLY REWARD GOOD RESULTS PUNISH BAD ONES TODO: problem with negative values
+    # if inputCut and method == 2:
+    #     M1_sampled =  np.sum(np.array([allCosts[i] * z[i][1] if allCosts[i] > inputCut else -(allCosts[i] * z[i][1])/50 for i in range(len(z))]))
+
+    # ENERGY BASED ON ONLY BETTER RESULTS ONLY REWARD GOOD RESULTS - EXTRA REWARDS FOR BEST RESULT
+    if inputCut and method == 2:
+        # "METHOD 3 PRINT ONLY MAX SHOULD BE X10"
+        # print(np.max(allCosts))
+        # print(list(allCosts))
+        # print(list(np.array(z)[:,1]))
+        # print([(allCosts[i] * z[i][1] if allCosts[i] != np.max(allCosts) else (allCosts[i] * z[i][1])*10 ) if allCosts[i] > inputCut else 0 for i in range(len(z))])
+        M1_sampled =  np.sum(np.array([(allCosts[i] * z[i][1] if allCosts[i] != np.max(allCosts) else (allCosts[i] * z[i][1])*10 ) if allCosts[i] > inputCut else 0 for i in range(len(z))]))
 
     # Exclude initial cut from Energyfunction
-    if inputCut and method == 2:
+    if inputCut and method == 3:
         M1_sampled =  np.sum(np.array([allCosts[i] * z[i][1] if allCosts[i] != inputCut else 0 for i in range(len(z))]))
         n_samples = np.sum(np.array([z[i][1] if allCosts[i] != inputCut else 0 for i in range(len(z))]))
         if n_samples > 0:
             M1_sampled = M1_sampled/n_samples
-
-    # ENERGY BASED ON ONLY BETTER RESULTS ONLY REWARD GOOD RESULTS - EXTRA REWARDS FOR BEST RESULT
-    if inputCut and method == 3:
-        "METHOD 3 PRINT ONLY MAX SHOULD BE X10"
-        print(np.max(allCosts))
-        print(list(allCosts))
-        print(list(np.array(z)[:,1]))
-        print([(allCosts[i] * z[i][1] if allCosts[i] != np.max(allCosts) else (allCosts[i] * z[i][1])*10 ) if allCosts[i] > inputCut else 0 for i in range(len(z))])
-        M1_sampled =  np.sum(np.array([(allCosts[i] * z[i][1] if allCosts[i] != np.max(allCosts) else (allCosts[i] * z[i][1])*10 ) if allCosts[i] > inputCut else 0 for i in range(len(z))]))
 
     # Differenz Methode
     if inputCut and method == 4:

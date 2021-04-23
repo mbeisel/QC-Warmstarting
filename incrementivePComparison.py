@@ -28,7 +28,8 @@ def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None
     print(bestCuts)
 
     p_range = list(p_range)
-    bestParamsForP = [[0,0] for i in range(len(p_range))]
+    bestParamsForPwarm = [[-999999999, None] for i in range(len(p_range))]
+    bestParamsForPcold = [[-999999999,None] for i in range(len(p_range))]
     for count,p in enumerate(p_range):
         warmstart = []
         coldstart = []
@@ -41,7 +42,7 @@ def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None
         for i in range(0, 1):
 
             # bestCutsParams = [gridSearch(objectiveFunction, graph, bestCuts[i,0], p)[0] for i in range(len(bestCuts))]
-            #optimize j times starting with different startvalues
+            #optimize j times starting with different startvalues or iteratively with best from previous run
             for j in range(5):
                 bestCut = bestCuts[i,0]
                 if(initialCut):
@@ -51,9 +52,14 @@ def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None
                 params = np.random.default_rng().uniform(0, np.pi, size=2*p)
                 params = np.zeros(2*p)
                 params_cold = np.zeros(2*p)
-                if(bestParamsForP[count-1][0] != 0):
+                if(bestParamsForPwarm[count-1][0] != -999999999):
                     for e in range(p_range[count-1]*2):
-                          params[e] = bestParamsForP[count-1][1][e]
+                          params[e] = bestParamsForPwarm[count-1][1][e]
+
+                if(bestParamsForPcold[count-1][0] != -999999999):
+                    # params_cold[e] = bestParamsForPcold[count-1][]
+                    for e in range(p_range[count-1]*2):
+                        params_cold[e] = bestParamsForPcold[count-1][1][e]
 
                 energyWarmList, cutWarmList, maxCutChanceWarmList, energyColdList, cutColdList, maxCutChanceColdList = [], [], [], [], [], []
                 #optimize k times with the same startvalues and take the best
@@ -73,9 +79,12 @@ def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None
                     energyCold, cutCold, maxCutChanceCold = objectiveFunctionBest(params_cold_optimized.x, graph, None, p,
                                                                                   knownMaxCut= knownMaxCut,
                                                                                   showHistogram=False)
-                    if bestParamsForP[count][0] < energyWarm:
-                        bestParamsForP[count][0] = energyWarm
-                        bestParamsForP[count][1] = list(params_warm_optimized.x)
+                    if bestParamsForPwarm[count][0] < energyWarm:
+                        bestParamsForPwarm[count][0] = energyWarm
+                        bestParamsForPwarm[count][1] = list(params_warm_optimized.x)
+                    if bestParamsForPcold[count][0] < energyCold:
+                        bestParamsForPcold[count][0] = energyCold
+                        bestParamsForPcold[count][1] = list(params_cold_optimized.x)
                     energyWarmList.append(energyWarm)
                     cutWarmList.append(cutWarm)
                     maxCutChanceWarmList.append(maxCutChanceWarm)
@@ -105,7 +114,8 @@ def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None
         cold_max.append(np.min(coldstart))
         print(warmstart)
         print(coldstart)
-        print(bestParamsForP)
+        print(bestParamsForPwarm)
+        print(bestParamsForPcold)
 
     print([warm_means, cold_means])
     print([warm_MaxCutProb, cold_MaxCutProb])
@@ -156,9 +166,9 @@ def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None
 
 graph_loaded = GraphStorage.load("graphs/fullyConnected-6-paperversion-graph.txt")
 cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-6-paperversion-cuts.txt")
-
-graph_loaded = GraphStorage.load("graphs/fullyConnected-12-graph.txt")
-cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-12-cuts.txt")
+#
+# graph_loaded = GraphStorage.load("graphs/fullyConnected-12-graph.txt")
+# cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-12-cuts.txt")
 
 
 # graph_loaded = GraphGenerator.genDiamondGraph()
@@ -166,8 +176,8 @@ cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-12-cuts.txt")
 print(cuts_loaded)
 
 # compareWarmStartEnergy(graph_loaded, [1,2,3,4,5 ], initialCut = [[0,1,0,1], 4], knownMaxCut = 4)
-# compareWarmStartEnergy(graph_loaded, [1,2,3], initialCut = [[0,0,1,1,1,1], 23], knownMaxCut = 27, epsilon=0.325)
-compareWarmStartEnergy(graph_loaded, [1,2,3], initialCut = cuts_loaded[2],  knownMaxCut = 95, epsilon=0.325)
+compareWarmStartEnergy(graph_loaded, [1,2,3], initialCut = [[0,0,1,1,1,1], 23], knownMaxCut = 27, epsilon=0.325)
+# compareWarmStartEnergy(graph_loaded, [1,2], initialCut = cuts_loaded[0],  knownMaxCut = 95, epsilon=0.325)
 # coldStartQAOA(graph_loaded, [1,2,3], knownMaxCut=4)
 
 
