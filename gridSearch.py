@@ -15,8 +15,8 @@ from datetime import datetime
 from QAOACircuitGenerator import QAOACircuitGenerator
 
 # Gridsearch for p = 1
-def gridSearch(objective_fun, Graph, approximation_List, p, gamma_step_size=0.5, gammaStart=0, gammaEnd=np.pi,
-               beta_step_size=0.5, betaStart=0, betaEnd=np.pi, plot=False, fname=None):
+def gridSearch(objective_fun, Graph, approximation_List, cut_size, maxCut, p, gamma_step_size=0.5, gammaStart=0, gammaEnd=np.pi,
+               beta_step_size=0.5, betaStart=0, betaEnd=np.pi, plot=False, method=None, fname=None):
 
     a_gamma = np.arange(gammaStart, gammaEnd, gamma_step_size)
     a_beta = np.arange(betaStart, betaEnd, beta_step_size)
@@ -50,7 +50,7 @@ def gridSearch(objective_fun, Graph, approximation_List, p, gamma_step_size=0.5,
             print(energyList)
             F1.append(np.max(energyList))
         else:
-            F1.append(objective_fun([a_gamma[i], a_beta[i]], Graph, approximation_List, p))
+            F1.append(objective_fun([a_gamma[i], a_beta[i]], Graph, approximation_List, p, inputCut=cut_size, method=method, maxCut=maxCut))
         print("Current Step: {}".format(i+1)) if (i + 1) % 10 == 0 else None
 
     F1 = np.array(F1)
@@ -91,8 +91,8 @@ def gridSearch(objective_fun, Graph, approximation_List, p, gamma_step_size=0.5,
 # GraphStorage.store("graphs/fullyConnected-20-graph.txt", graph)
 # GraphStorage.storeGWcuts("graphs/fullyConnected-20-cuts.txt", cuts)
 
-graph_loaded = GraphStorage.load("graphs/fullyConnected-6-paperversion-graph.txt")
-cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-6-paperversion-cuts.txt")
+graph_loaded = GraphStorage.load("graphs/grid-3-4-graph.txt")
+cuts_loaded = GraphStorage.loadGWcuts("graphs/grid-3-4-cuts.txt")
 
 # graph_loaded = GraphStorage.load("graphs/fullyConnected-12-graph.txt")
 # cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-12-cuts.txt")
@@ -101,43 +101,21 @@ cuts_loaded = np.array([[epsilonFunction(cut[0], epsilon), cut[1]] for cut in cu
 
 # graph_loaded = GraphGenerator.genDiamondGraph()
 print(cuts_loaded)
-print("Selected GWCut {}".format(cuts_loaded[0]))
+cut_used = cuts_loaded[1]
+maxcut = cuts_loaded[-1,1]
+methods = ["max", 0, 1, 2, 3]
 
-filename = "results/Gridsearch-"+datetime.now().strftime("%Y-%m-%d_%H-%M")+".png"
-# params, min_energy = gridSearch(objectiveFunction, graph_loaded, cuts_loaded[0][0], 1,
-#                                 gamma_step_size=1, gammaStart=0, gammaEnd=2*np.pi,
-#                                 beta_step_size=1, betaStart=0, betaEnd=np.pi,
-#                                 fname=filename)
-# print(params)
-# print(min_energy)
-# print(objectiveFunctionBest(params, graph_loaded, cuts_loaded[0][0], 1, showHistogram=False))
+#cut_used = cuts_loaded[2,0]
+print("Selected GWCut {}; Maxcut: {}".format(cut_used, maxcut))
 
-# graph_loaded =  GraphGenerator.genFullyConnectedGraph(10, [1,2])
-# graph_loaded = GraphGenerator.genButterflyGraph()
-# cuts_loaded = bestGWcuts(graph_loaded, 5,2, cost_function_C)
+for method in methods:
+    filename = "results/Gridsearch-"+datetime.now().strftime("%Y-%m-%d_%H-%M-%S_")+str(len(cut_used[0]))+"-"+str(cut_used[1])+"-method"+str(method)+"-eps"+str(epsilon)+".png"
+    params, min_energy = gridSearch(
+        objectiveFunction,
+        graph_loaded, cut_used[0], cut_used[1], maxcut,
+        1,
+        gamma_step_size=np.pi/10, gammaStart=-np.pi*0, gammaEnd=np.pi*2,
+        betaEnd=np.pi, beta_step_size=np.pi/10,
+        method=method, plot=True, fname=filename)
 
-# Default Gridsearch for p = 1
-# print(gridSearch(objectiveFunction, graph_loaded, epsilonFunction([1,1,0,0,0,0],0.25) , 1, gamma_step_size=np.pi/20, gammaStart=0, gammaEnd=2*np.pi,
-#            beta_step_size=np.pi/20,betaStart=0, betaEnd=np.pi, plot=True, fname=filename ))
-cut_used = epsilonFunction([0.25, 0.75, 0.25, 0.25, 0.75, 0.75],0.25)
-# params, min_energy = gridSearch(objectiveFunction, graph_loaded,  cut_used , 1, gamma_step_size=np.pi/10, gammaStart=0, gammaEnd=2*np.pi,
-#            beta_step_size=np.pi/10,betaStart=0, betaEnd=np.pi, plot=True, fname=filename )
-
-
-#p=1 detailed search around 0, pi/2
-# gridSearch(objectiveFunction, graph, RawBestCuts[0,0], 1, gamma_step_size=0.0002, gammaStart=-0.001, gammaEnd=0.001, beta_step_size=0.001,betaStart=np.pi/2 -0.01, betaEnd=np.pi/2 +0.01, plot=True )
-
-# Gridsearch for p=3 over the entire grid
-gridSearch(objectiveFunction, graph_loaded, cuts_loaded[2,0], 3, gamma_step_size=1, beta_step_size=1 ,plot=True )
-
-#Gridsearch for p=3 from -3.4 to -2.9 as shown in warmstarting optimization paper
-# params, min_energy = gridSearch(objectiveFunction, graph_loaded, cuts_loaded[2,0],  3, gamma_step_size=0.025, gammaStart=-3.4, gammaEnd=-2.89, beta_step_size=0.025,betaStart=-3.4, betaEnd=-2.89, plot=True, fname=filename )
-
-# gridSearch(objectiveFunction, graph, initialCut[0], 3, gamma_step_size=0.2, gammaStart=0, gammaEnd=np.pi, beta_step_size=0.2,betaStart=0, betaEnd=np.pi, plot=True, fname=filename )
-
-# circ = QAOACircuitGenerator.genQaoaMaxcutCircuit(graph_loaded, [0, np.pi/2], [1, 0, 1, 0], 1)
-#
-# circ.draw(output="mpl")
-# plt.show()
-
-
+print("Params: {}, Min energy: {}".format(params, min_energy))
