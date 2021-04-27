@@ -102,7 +102,7 @@ def compute_costs(QAOA_results, G,inputCut = None, knownMaxCut = None, method = 
         if n_samples > 0:
             M1_sampled = M1_sampled/n_samples
 
-    print(M1_sampled)
+    # print(M1_sampled)
     max_C[1] = np.amax(allCosts)
     max_C[0] = parseSolution(z[np.where(allCosts == max_C[1])[0][0]][0])
 
@@ -150,12 +150,14 @@ def plotCircuit(G, approximation_List, params, p, backend=None):
         plt.show()
 
 
-def objectiveFunction(input, Graph, approximation_List, p, mixedOptimizerVars = None, inputCut = None, method = None, showHistogram=False):
+def objectiveFunction(input, Graph, approximation_List, p, mixedOptimizerVars = None, inputCut = None, method = None, showHistogram=False, maxCut=None):
     if mixedOptimizerVars:
         input = mixedOptimizerVars + (list(input))
     results = runQaoa(input, Graph, approximation_List, p)
-    costs, _, _, _ = compute_costs(results, Graph, showHistogram=showHistogram,  method=method, inputCut=inputCut)
-    return - costs
+    costs, _, bestCut, maxCutChance = compute_costs(results, Graph, showHistogram=showHistogram, method=method, inputCut=inputCut, knownMaxCut=maxCut)
+    if method == "max":
+        return -maxCutChance
+    return -costs
 
 
 def objectiveFunctionBest(input, Graph, approximation_List, p, knownMaxCut = None, inputCut = None, method = None, showHistogram=False):
