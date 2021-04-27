@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
 
-def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None):
+def compareWarmStartEnergy(graph, p_range, initialCut, knownMaxCut = None):
     warm_means = []
     cold_means = []
     warm_value_list = []
@@ -21,12 +21,8 @@ def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None
     warm_MaxCutProb_Values = []
     cold_MaxCutProb_Values = []
 
-    bestCuts = bestGWcuts(graph, 8, 5, continuous=False, epsilon=0)
-    bestCuts = np.array([[epsilonFunction(cut[0], epsilon=0.25), cut[1]] for cut in deepcopy(bestCuts)], dtype=object)
-    if not knownMaxCut:
-        knownMaxCut = bestCuts[len(bestCuts)-1,1]
     print("knownmaxcut {}".format(knownMaxCut))
-    print(bestCuts)
+
 
     p_range = list(p_range)
     for p in p_range:
@@ -39,22 +35,18 @@ def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None
         optimizer_options = ({"rhobeg": np.pi/2})  # ({"maxiter": 10})# to limit optimizer iterations
 
         for i in range(0, 1):
-
-            # bestCutsParams = [gridSearch(objectiveFunction, graph, bestCuts[i,0], p)[0] for i in range(len(bestCuts))]
             #optimize j times starting with different startvalues
-            for j in range(20):
-                bestCut = bestCuts[i,0]
+            for j in range(5):
+                # bestCut = bestCuts[i,0]
                 if(initialCut):
                     bestCut = epsilonFunction(initialCut[0], epsilon=0.25)
-                print(bestCut)
                 params = np.zeros(2 * p)
                 params = np.random.default_rng().uniform(0, np.pi, size=2*p)
                 energyWarmList, cutWarmList, maxCutChanceWarmList, energyColdList, cutColdList, maxCutChanceColdList = [], [], [], [], [], []
                 #optimize k times with the same startvalues and take the best
                 for k in range(1):
                     params_warm_optimized = minimize(objectiveFunction, params, method="COBYLA",
-                                                     args=(graph, bestCut, p, initialCut[1]), options=optimizer_options)
-                    # plotCircuit(graph, bestCuts[i,0], params_warm_optimized.x, p,)
+                                                     args=(graph, bestCut, p, None, initialCut[1]), options=optimizer_options)
                     params_cold_optimized = minimize(objectiveFunction, params, method="COBYLA", args=(graph, None, p),
                                                      options=optimizer_options, )
                     energyWarm, cutWarm, maxCutChanceWarm = objectiveFunctionBest(params_warm_optimized.x, graph, bestCut, p,
@@ -83,7 +75,6 @@ def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None
         cold_MaxCutProb.append(np.median(coldstartMaxCutProb)*100)
         warm_MaxCutProb_Values.append([[p for i in range(len(warmstartMaxCutProb))], np.array(warmstartMaxCutProb)*100])
         cold_MaxCutProb_Values.append([[p for i in range(len(coldstartMaxCutProb))], np.array(coldstartMaxCutProb)*100])
-        # TODO mean vs median
         warm_means.append(np.median(warmstart))
         cold_means.append(np.median(coldstart))
         warm_value_list.append([[p for i in range(len(warmstart))], warmstart])
@@ -105,10 +96,8 @@ def compareWarmStartEnergy(graph, p_range, initialCut = None, knownMaxCut = None
     plt.scatter(cold_value_list[:,0], cold_value_list[:,1], marker=".", color='blue', label="coldstarted", alpha=.4)
     plt.scatter(p_range, warm_means, linestyle="None", marker="x", color="r", label="mean cut", alpha=.75)
     plt.scatter(p_range, cold_means, linestyle="None", marker="x", color="b", label="mean cut", alpha=.75)
-    usedCut = bestCuts[0,1]
     offset = totalCost(graph)
-    if(initialCut):
-        usedCut = initialCut[1]
+    usedCut = initialCut[1]
     plt.plot([np.min(p_range), np.max(p_range)], [usedCut -offset, usedCut-offset], linestyle="dashed",
              label="used GW-Cut")
     plt.plot([np.min(p_range), np.max(p_range)], [knownMaxCut-offset, knownMaxCut-offset], linestyle="dashed",
@@ -138,12 +127,6 @@ def coldStartQAOA(graph, p_range, knownMaxCut = None):
     cold_MaxCutProb = []
     cold_MaxCutProb_Values = []
 
-    bestCuts = bestGWcuts(graph, 8, 5, continuous=False, epsilon=0)
-    bestCuts = np.array([[epsilonFunction(cut[0], epsilon=0.25), cut[1]] for cut in deepcopy(bestCuts)], dtype=object)
-    if not knownMaxCut:
-        knownMaxCut = bestCuts[len(bestCuts)-1,1]
-    print("knownmaxcut {}".format(knownMaxCut))
-    print(bestCuts)
 
     p_range = list(p_range)
     for p in p_range:
@@ -152,14 +135,11 @@ def coldStartQAOA(graph, p_range, knownMaxCut = None):
 
         optimizer_options = None  # ({"maxiter": 10})# to limit optimizer iterations
         optimizer_options = ({"rhobeg": np.pi/2})  # ({"maxiter": 10})# to limit optimizer iterations
-
         for i in range(0, 1):
 
-            # bestCutsParams = [gridSearch(objectiveFunction, graph, bestCuts[i,0], p)[0] for i in range(len(bestCuts))]
             for j in range(2):
                 params = np.zeros(2 * p)
                 params = np.random.default_rng().uniform(0, np.pi, size=2*p)
-                               # plotCircuit(graph, bestCuts[i,0], params_warm_optimized.x, p,)
                 params_cold_optimized = minimize(objectiveFunction, params, method="COBYLA", args=(graph, None, p),
                                                  options=optimizer_options)
                 energyCold, cutCold, maxCutChanceCold = objectiveFunctionBest(params_cold_optimized.x, graph, None, p,
@@ -174,7 +154,6 @@ def coldStartQAOA(graph, p_range, knownMaxCut = None):
 
         cold_MaxCutProb.append(np.median(coldstartMaxCutProb)*100)
         cold_MaxCutProb_Values.append([[p for i in range(len(coldstartMaxCutProb))], np.array(coldstartMaxCutProb)*100])
-        # TODO mean vs median
         cold_means.append(np.median(coldstart))
         cold_value_list.append([[p for i in range(len(coldstart))], coldstart])
         cold_max.append(np.min(coldstart))
