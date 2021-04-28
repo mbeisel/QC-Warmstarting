@@ -81,15 +81,17 @@ def gridSearch(objective_fun, Graph, approximation_List, cut_size, maxCut, p, ga
         ax.set_xticks(np.arange(0, 2*np.pi+0.01, np.pi/2))
         labels = ['$0$', r'$\pi/2$', r'$\pi$', r'$3\pi/2$', r'$2\pi$']
         ax.set_xticklabels(labels)
+        ax.set_xlabel(r'$\gamma_1$', fontsize=16)
 
         ax.set_yticks(np.arange(0, np.pi+0.01, np.pi/2))
         labels = ['$0$', r'$\pi/2$', r'$\pi$']
         ax.set_yticklabels(labels)
+        ax.set_ylabel(r'$\beta_1$', fontsize=16)
 
         cbar = fig.colorbar(img)
         cbar.ax.set_ylabel("Energy")
     if (fname):
-        plt.savefig(fname)
+        plt.savefig(fname, bbox_inches = "tight")
         plt.close()
     else:
         plt.show()
