@@ -74,6 +74,18 @@ def gridSearch(objective_fun, Graph, approximation_List, cut_size, maxCut, p, ga
         ax = fig.add_subplot(1,1,1)
         img = ax.contourf(a_gamma, a_beta, F1, cmap=cm.get_cmap('viridis', 256), antialiased=True)
         # img = ax.pcolormesh(a_gamma, a_beta, F1, cmap=cm.get_cmap('viridis', 256), rasterized = True)
+        ax.scatter(gamma, beta, s=100, edgecolor="r", facecolor="none", linewidth=3.5)
+
+        ax.tick_params(axis='both', which='major', labelsize=16)
+
+        ax.set_xticks(np.arange(0, 2*np.pi+0.01, np.pi/2))
+        labels = ['$0$', r'$\pi/2$', r'$\pi$', r'$3\pi/2$', r'$2\pi$']
+        ax.set_xticklabels(labels)
+
+        ax.set_yticks(np.arange(0, np.pi+0.01, np.pi/2))
+        labels = ['$0$', r'$\pi/2$', r'$\pi$']
+        ax.set_yticklabels(labels)
+
         cbar = fig.colorbar(img)
         cbar.ax.set_ylabel("Energy")
     if (fname):
@@ -118,4 +130,4 @@ for method in methods:
         betaEnd=np.pi, beta_step_size=np.pi/10,
         method=method, plot=True, fname=filename)
 
-print("Params: {}, Min energy: {}".format(params, min_energy))
+    print("Params: {}, Min energy: {}".format(params, min_energy))
