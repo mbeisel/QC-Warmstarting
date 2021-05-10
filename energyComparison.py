@@ -8,6 +8,7 @@ from maxcutQaoa import objectiveFunction, objectiveFunctionBest, totalCost, cost
 import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
+from MinimizeWrapper import MinimizeWrapper
 
 def compareWarmStartEnergy(graph, p_range, initialCut, knownMaxCut = None):
     warm_means = []
@@ -36,7 +37,7 @@ def compareWarmStartEnergy(graph, p_range, initialCut, knownMaxCut = None):
 
         for i in range(0, 1):
             #optimize j times starting with different startvalues
-            for j in range(5):
+            for j in range(2):
                 # bestCut = bestCuts[i,0]
                 if(initialCut):
                     bestCut = epsilonFunction(initialCut[0], epsilon=0.25)
@@ -45,9 +46,9 @@ def compareWarmStartEnergy(graph, p_range, initialCut, knownMaxCut = None):
                 energyWarmList, cutWarmList, maxCutChanceWarmList, energyColdList, cutColdList, maxCutChanceColdList = [], [], [], [], [], []
                 #optimize k times with the same startvalues and take the best
                 for k in range(1):
-                    params_warm_optimized = minimize(objectiveFunction, params, method="COBYLA",
+                    params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, params, method="COBYLA",
                                                      args=(graph, bestCut, p, None, initialCut[1]), options=optimizer_options)
-                    params_cold_optimized = minimize(objectiveFunction, params, method="COBYLA", args=(graph, None, p),
+                    params_cold_optimized = MinimizeWrapper().minimize(objectiveFunction, params, method="COBYLA", args=(graph, None, p),
                                                      options=optimizer_options, )
                     energyWarm, cutWarm, maxCutChanceWarm = objectiveFunctionBest(params_warm_optimized.x, graph, bestCut, p,
                                                                                   knownMaxCut= knownMaxCut,
