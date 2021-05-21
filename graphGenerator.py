@@ -142,9 +142,8 @@ class GraphPlotter():
         nodes = nx.draw_networkx_nodes(G,pos,node_color=colors, node_size=600, alpha=1, ax=default_axes)
         edges = nx.draw_networkx_edges(G,pos,edge_color=edgeColors, edge_cmap=cm.get_cmap("coolwarm"),edge_vmin=-10, edge_vmax=10)
 
-        label_dict= { i : list(range(G.size()))[i] for i in range(0, len(list(range(G.size()))) ) }
+        label_dict= { i : list(range(G.number_of_nodes()))[i] for i in range(0, len(list(range(G.number_of_nodes()))) ) }
         labels = nx.draw_networkx_labels(G, pos, labels={n:lab for n,lab in label_dict.items() if n in pos})
-        # nx.draw_networkx(G, node_color=colors, node_size=600, alpha=1, ax=default_axes, pos=pos, edge_color=edgeColors, edge_cmap=cm.get_cmap("coolwarm"))
         plt.colorbar(edges)
         if printWeights:
             labels = nx.get_edge_attributes(G,'weight')
@@ -156,6 +155,6 @@ class GraphPlotter():
         else:
             plt.show()
 
-# g = GraphGenerator.genRandomGraph(12,15)
+g = GraphGenerator.genRandomGraph(12,11)
 # g = GraphGenerator.genRegularGraph(16, 3)
-# GraphPlotter.plotGraph(g, printWeights=False)
+GraphPlotter.plotGraph(g, printWeights=False)
