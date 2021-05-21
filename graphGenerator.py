@@ -81,20 +81,23 @@ class GraphGenerator():
     @classmethod
     def genRandomGraph(cls, n_vertices, n_edges, weightRange=(-10, 10)):
         matrix = np.zeros((n_vertices, n_vertices))
-        edges = np.zeros((n_vertices*(n_vertices-1))//2)
-        indices = np.random.choice(range(len(edges)), n_edges, replace=False)
-        edges[indices] = 1  #add weights here
-        weights = list(np.random.choice(range(weightRange[0], weightRange[1]+1), len(edges)))
+        graph = None
+        while (not graph or not nx.is_connected(graph)):
+            edges = np.zeros((n_vertices*(n_vertices-1))//2)
+            indices = np.random.choice(range(len(edges)), n_edges, replace=False)
+            edges[indices] = 1  #add weights here
+            weights = list(np.random.choice(range(weightRange[0], weightRange[1]+1), len(edges)))
 
-        for i in range(1, n_vertices):
-            for j in range(n_vertices -1):
-                if i > j:
-                    weight, weights = pop(weights)
-                    matrix[i,j], edges = pop(edges)
-                    matrix[i,j] *= weight
-                    matrix[j,i] = matrix[i,j]
-
+            for i in range(1, n_vertices):
+                for j in range(n_vertices -1):
+                    if i > j:
+                        weight, weights = pop(weights)
+                        matrix[i,j], edges = pop(edges)
+                        matrix[i,j] *= weight
+                        matrix[j,i] = matrix[i,j]
+            graph = nx.from_numpy_matrix(np.array(matrix))
         return matrix
+
 
     @classmethod
     def genWarmstartPaperGraph(cls):
@@ -126,16 +129,23 @@ def pop(list):
 class GraphPlotter():
     @classmethod
     def plotGraph(cls, G, printWeights=True, x=None, fname=None):
-        if isinstance(G, csr_matrix):
+        if isinstance(G, csr_matrix) or isinstance(G, np.ndarray):
             G = nx.Graph(G)
         if not x:
-            colors = ['r' for _ in G.nodes()]
+            colors = ['silver' for _ in G.nodes()]
         else:
             colors = ['r' if int(cls) == 0 else 'b' for cls in x]
         default_axes = plt.axes(frameon=True)
         pos          = nx.circular_layout(G)
 
-        nx.draw_networkx(G, node_color=colors, node_size=600, alpha=1, ax=default_axes, pos=pos)#, edge_color=[w for (u,v,w) in G.edges(data=True)], edge_cmap=cm.Blues)
+        edgeColors = [w.get('weight') for (u,v,w) in G.edges(data=True)]
+        nodes = nx.draw_networkx_nodes(G,pos,node_color=colors, node_size=600, alpha=1, ax=default_axes)
+        edges = nx.draw_networkx_edges(G,pos,edge_color=edgeColors, edge_cmap=cm.get_cmap("coolwarm"),edge_vmin=-10, edge_vmax=10)
+
+        label_dict= { i : list(range(G.size()))[i] for i in range(0, len(list(range(G.size()))) ) }
+        labels = nx.draw_networkx_labels(G, pos, labels={n:lab for n,lab in label_dict.items() if n in pos})
+        # nx.draw_networkx(G, node_color=colors, node_size=600, alpha=1, ax=default_axes, pos=pos, edge_color=edgeColors, edge_cmap=cm.get_cmap("coolwarm"))
+        plt.colorbar(edges)
         if printWeights:
             labels = nx.get_edge_attributes(G,'weight')
             nx.draw_networkx_edge_labels(G,pos,edge_labels=labels)
@@ -146,5 +156,6 @@ class GraphPlotter():
         else:
             plt.show()
 
-# g = GraphGenerator.genRegularGraph(12, 3)
+# g = GraphGenerator.genRandomGraph(12,15)
+# g = GraphGenerator.genRegularGraph(16, 3)
 # GraphPlotter.plotGraph(g, printWeights=False)
