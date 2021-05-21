@@ -1,6 +1,8 @@
 import networkx as nx  # tool to handle general Graphs 
 import numpy as np
 import matplotlib.pyplot as plt 
+from matplotlib import cm
+from scipy.sparse import csr_matrix
 
 class GraphGenerator():
     @classmethod
@@ -106,6 +108,16 @@ class GraphGenerator():
                     matrix[j,i] = matrix[i,j]
         return matrix
 
+    @classmethod
+    def genRegularGraph(cls, n_vertices, degree, weightRange=(-10, 10)):
+        graph = None
+        while (not graph or not nx.is_connected(graph)):
+            graph = nx.generators.random_graphs.random_regular_graph(degree, n_vertices)
+
+        for (u,v,w) in graph.edges(data=True):
+            w['weight'] = np.random.choice(range(weightRange[0], weightRange[1]+1))
+        return nx.adjacency_matrix(graph)
+
 def pop(list):
     firstElement = list[0]
     list = list[1:]
@@ -114,13 +126,16 @@ def pop(list):
 class GraphPlotter():
     @classmethod
     def plotGraph(cls, G, printWeights=True, x=None, fname=None):
+        if isinstance(G, csr_matrix):
+            G = nx.Graph(G)
         if not x:
-            colors = ['r' for node in G.nodes()]
+            colors = ['r' for _ in G.nodes()]
         else:
-            colors = ['r' if cls == '0' else 'b' for cls in x]
+            colors = ['r' if int(cls) == 0 else 'b' for cls in x]
         default_axes = plt.axes(frameon=True)
-        pos          = nx.spring_layout(G)
-        nx.draw_networkx(G, node_color=colors, node_size=600, alpha=1, ax=default_axes, pos=pos)
+        pos          = nx.circular_layout(G)
+
+        nx.draw_networkx(G, node_color=colors, node_size=600, alpha=1, ax=default_axes, pos=pos)#, edge_color=[w for (u,v,w) in G.edges(data=True)], edge_cmap=cm.Blues)
         if printWeights:
             labels = nx.get_edge_attributes(G,'weight')
             nx.draw_networkx_edge_labels(G,pos,edge_labels=labels)
@@ -130,3 +145,6 @@ class GraphPlotter():
             plt.close()
         else:
             plt.show()
+
+# g = GraphGenerator.genRegularGraph(12, 3)
+# GraphPlotter.plotGraph(g, printWeights=False)
