@@ -128,23 +128,26 @@ def pop(list):
 
 class GraphPlotter():
     @classmethod
-    def plotGraph(cls, G, printWeights=True, x=None, fname=None):
+    def plotGraph(cls, G, printWeights=True, x=None, ax=None, fname=None):
         if isinstance(G, csr_matrix) or isinstance(G, np.ndarray):
             G = nx.Graph(G)
         if not x:
             colors = ['silver' for _ in G.nodes()]
         else:
             colors = ['r' if int(cls) == 0 else 'b' for cls in x]
-        default_axes = plt.axes(frameon=True)
-        pos          = nx.circular_layout(G)
+        axis = ax if ax else plt.axes(frameon=True)
+        pos  = nx.circular_layout(G)
 
         edgeColors = [w.get('weight') for (u,v,w) in G.edges(data=True)]
-        nodes = nx.draw_networkx_nodes(G,pos,node_color=colors, node_size=600, alpha=1, ax=default_axes)
+        nodes = nx.draw_networkx_nodes(G,pos,node_color=colors, node_size=600, alpha=1, ax=axis)
         edges = nx.draw_networkx_edges(G,pos,edge_color=edgeColors, edge_cmap=cm.get_cmap("coolwarm"),edge_vmin=-10, edge_vmax=10)
 
         label_dict= { i : list(range(G.number_of_nodes()))[i] for i in range(0, len(list(range(G.number_of_nodes()))) ) }
         labels = nx.draw_networkx_labels(G, pos, labels={n:lab for n,lab in label_dict.items() if n in pos})
-        plt.colorbar(edges)
+
+        if not ax:
+            plt.colorbar(edges)
+
         if printWeights:
             labels = nx.get_edge_attributes(G,'weight')
             nx.draw_networkx_edge_labels(G,pos,edge_labels=labels)
@@ -152,9 +155,11 @@ class GraphPlotter():
         if fname:
             plt.savefig(fname, format="png")
             plt.close()
-        else:
+        elif not ax:
             plt.show()
+        else:
+            return edges
 
-g = GraphGenerator.genRandomGraph(12,11)
+# g = GraphGenerator.genRandomGraph(12,11)
 # g = GraphGenerator.genRegularGraph(16, 3)
-GraphPlotter.plotGraph(g, printWeights=False)
+# GraphPlotter.plotGraph(g, printWeights=False)
