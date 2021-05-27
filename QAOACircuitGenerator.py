@@ -54,9 +54,14 @@ class QAOACircuitGenerator():
 
             if(initial):
                 for qubits in range(n_vertices):
-                    QAOA.ry(2*np.arcsin(np.sqrt(initial[qubits])),qubits)
-                    QAOA.rz(-2*betas[iter],qubits)
+                    # adapted egger et al. WS-Mixer
+                    # QAOA.ry(2*np.arcsin(np.sqrt(initial[qubits])),qubits)
+                    # QAOA.rz(-2*betas[iter],qubits)
+                    # QAOA.ry(-2*np.arcsin(np.sqrt(initial[qubits])),qubits)
+                    # default WS-Mixer
                     QAOA.ry(-2*np.arcsin(np.sqrt(initial[qubits])),qubits)
+                    QAOA.rz(-2*betas[iter],qubits)
+                    QAOA.ry(2*np.arcsin(np.sqrt(initial[qubits])),qubits)
             else:
                 QAOA.rx(2*betas[iter], range(n_vertices))
         
@@ -64,7 +69,7 @@ class QAOACircuitGenerator():
         QAOA.barrier()
         QAOA.measure(range(n_vertices),range(n_vertices))
         
-        ## draw the circuit for comparison
+        # draw the circuit for comparison
         # QAOA.draw(output='mpl')
         # plt.show()
 

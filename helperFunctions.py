@@ -6,3 +6,12 @@ def epsilonFunction(cutList, epsilon=0.25):
         if (cutList[i] < epsilon):
             cutList[i] = epsilon
     return cutList
+
+def takeFirst(elem):
+    return elem[0]
+def takeSecond(elem):
+    return elem[1]
+def takeThird(elem):
+    return elem[2]
+def parseSolution(sol):
+    return [int(i) for i in sol]

@@ -3,6 +3,7 @@ import numpy as np
 from qiskit import Aer, execute
 from qiskit import transpile, assemble
 from qiskit.visualization import plot_histogram
+from helperFunctions import *
 
 from QAOACircuitGenerator import QAOACircuitGenerator
 from graphGenerator import GraphPlotter
@@ -34,102 +35,100 @@ def runQaoa(input, Graph, approximation_List, p):
     backend = Aer.get_backend("qasm_simulator")
     shots = 5000
     QAOA = QAOACircuitGenerator.genQaoaMaxcutCircuit(Graph, input, approximation_List, p)
-    TQAOA = transpile(QAOA, backend)
-    # qobj = assemble(TQAOA)
     QAOA_results = execute(QAOA, backend, shots=shots).result()
     return QAOA_results
 
 
-def compute_costs(QAOA_results, G,inputCut = None, knownMaxCut = None, method = 2,showHistogram=False):
+def compute_costs(QAOA_results, G,inputCut = None, knownMaxCut = None, method = None, method_params =None, showHistogram=False):
     # Evaluate the data from the simulator
     counts = QAOA_results.get_counts()
-    max_C = [0, 0, 0]
     max_Cut_Probability = 0
 
-    z = zip(list(counts.keys()), list(counts.values()))
+    allCosts = np.array([cost_function_C(parseSolution(x), G) for x in list(counts.keys())])
+    z = zip(list(counts.keys()), list(counts.values()), list(allCosts))
     z = list(z)
-
-
-    def takeFirst(elem):
-        return elem[0]
-    def takeSecond(elem):
-        return elem[1]
-    def parseSolution(sol):
-        return [int(i) for i in sol]
-
-    z.sort(key=takeSecond, reverse=True)
-
-    allCosts = np.array([cost_function_C(parseSolution(x), G) for x, _ in z])
-    allCostsWeightedByNumberOfOccurances = np.array([allCosts[i] * z[i][1] for i in range(len(z))])
-
 
     # CLASSIC ENERGY CALCULATION
     #with offset
-
-
-    M1_sampled = (   np.sum(allCostsWeightedByNumberOfOccurances) / np.sum(list(counts.values()))  ) - totalCost(G)
+    # M1_sampled = (np.sum(np.array([allCosts[i] * z[i][1] for i in range(len(z))])) / np.sum(list(counts.values()))) - totalCost(G)
     #without offset
-    # M1_sampled = (   np.sum(allCostsWeightedByNumberOfOccurances) / np.sum(list(counts.values()))  )
+
+    if method == None:
+        total_objective_value = (np.sum(np.array([allCosts[i] * z[i][1] for i in range(len(z))])) / np.sum(list(counts.values())))
 
     # ENERGY BASED ON ONLY BETTER RESULTS ONLY REWARD GOOD RESULTS
-    if inputCut and method == 1:
-        M1_sampled =  np.sum(np.array([allCosts[i] * z[i][1] if allCosts[i] > inputCut else 0 for i in range(len(z))]))
-
-    # ENERGY BASED ON ONLY BETTER RESULTS ONLY REWARD GOOD RESULTS PUNISH BAD ONES TODO: problem with negative values
-    # if inputCut and method == 2:
-    #     M1_sampled =  np.sum(np.array([allCosts[i] * z[i][1] if allCosts[i] > inputCut else -(allCosts[i] * z[i][1])/50 for i in range(len(z))]))
-
-    # ENERGY BASED ON ONLY BETTER RESULTS ONLY REWARD GOOD RESULTS - EXTRA REWARDS FOR BEST RESULT
-    if inputCut and method == 2:
-        # "METHOD 3 PRINT ONLY MAX SHOULD BE X10"
-        # print(np.max(allCosts))
-        # print(list(allCosts))
-        # print(list(np.array(z)[:,1]))
-        # print([(allCosts[i] * z[i][1] if allCosts[i] != np.max(allCosts) else (allCosts[i] * z[i][1])*10 ) if allCosts[i] > inputCut else 0 for i in range(len(z))])
-        M1_sampled =  np.sum(np.array([(allCosts[i] * z[i][1] if allCosts[i] != np.max(allCosts) else (allCosts[i] * z[i][1])*10 ) if allCosts[i] > inputCut else 0 for i in range(len(z))]))
-
-    # Exclude initial cut from Energyfunction
-    if inputCut and method == 3:
-        M1_sampled =  np.sum(np.array([allCosts[i] * z[i][1] if allCosts[i] != inputCut else 0 for i in range(len(z))]))
-        n_samples = np.sum(np.array([z[i][1] if allCosts[i] != inputCut else 0 for i in range(len(z))]))
-        if n_samples > 0:
-            M1_sampled = M1_sampled/n_samples
-
-    # Differenz Methode
-    if inputCut and method == 4:
-        M1_sampled =  np.sum(np.array([(allCosts[i] - inputCut) * z[i][1] for i in range(len(z))]))
+    elif inputCut and method.lower() == "greedy":
         n_samples = np.sum(list(counts.values()))
         if n_samples > 0:
-            M1_sampled = M1_sampled/n_samples
+            total_objective_value =  np.sum(np.array([allCosts[i] * z[i][1] if allCosts[i] > inputCut else 0 for i in range(len(z))])) / n_samples
 
-    # print(M1_sampled)
-    max_C[1] = np.amax(allCosts)
-    max_C[0] = parseSolution(z[np.where(allCosts == max_C[1])[0][0]][0])
+    # ENERGY BASED ON ONLY BETTER RESULTS ONLY REWARD GOOD RESULTS - EXTRA REWARDS FOR BEST RESULT
+    elif inputCut and method.lower() == "greedy_extra":
+        n_samples = np.sum(list(counts.values()))
+        if n_samples > 0:
+            total_objective_value =  np.sum(np.array([(allCosts[i] * z[i][1] if allCosts[i] != np.max(allCosts) else (allCosts[i] * z[i][1])*10 ) if allCosts[i] > inputCut else 0 for i in range(len(z))]))/n_samples
 
-    # only take most common value as solution cut
-    # max_C[1] = allCosts[0]
-    # max_C[0] = bitarray.bitarray(z[0][1])
+    # Exclude initial cut from Energyfunction
+    elif inputCut and method.lower() == "ee-i":
+        total_objective_value =  np.sum(np.array([allCosts[i] * z[i][1] if allCosts[i] != inputCut else 0 for i in range(len(z))]))
+        n_samples = np.sum(np.array([z[i][1] if allCosts[i] != inputCut else 0 for i in range(len(z))]))
+        if n_samples > 0:
+            total_objective_value = total_objective_value/n_samples
+
+    # Differenz Methode
+    elif inputCut and method.lower() == "diff":
+        total_objective_value =  np.sum(np.array([(allCosts[i] - inputCut) * z[i][1] for i in range(len(z))]))
+        n_samples = np.sum(list(counts.values()))
+        if n_samples > 0:
+            total_objective_value = total_objective_value/n_samples
+
+    # CVar
+    elif inputCut and method.lower() == "cvar":
+        z.sort(key=takeThird, reverse=True)
+        total_objective_value = 0
+        alpha, *_ = method_params
+        alpha *= np.ceil(np.sum(list(counts.values())))
+        alphaRemaining = alpha
+        for i in range(len(z)):
+            if z[i][1] < alphaRemaining:
+                total_objective_value += z[i][1] * z[i][2]
+                alphaRemaining -= z[i][1]
+            else:
+                total_objective_value += alphaRemaining * z[i][2]
+                break
+        total_objective_value /= alpha
+        print(total_objective_value)
+
+    # Gibbs
+    elif inputCut and method.lower() == "gibbs":
+        eta, *_ = method_params
+        n_samples = np.sum(list(counts.values()))
+        z = np.array(z, dtype=object)
+        total_objective_value = np.log(np.sum((np.e ** (eta * z[:,2]))* z[:,1])/n_samples)
+
+
+    best_sampled_cut_size = np.amax(allCosts)
+    best_sampled_cut_string = parseSolution(z[np.where(allCosts == best_sampled_cut_size)[0][0]][0])
+
 
     if (knownMaxCut):
         tupels = np.array(z)[np.where(allCosts == knownMaxCut)]
-        # print(tupels)
         max_Cut_Probability = np.sum([int(tuple[1])  for tuple in tupels])
-        # print(max_Cut_Probability)
         max_Cut_Probability = max_Cut_Probability/np.sum(list(counts.values()))
-        # print(max_Cut_Probability)
 
     if (showHistogram):
         plot_histogram(counts)
         plt.show()
-        print("rank {}".format(np.where(allCosts == max_C[1])[0][0]))
+        print("rank {}".format(np.where(allCosts == best_sampled_cut_size)[0][0]))
     # print("Max number of states: {} ".format(2 ** len(max_C[0])))
     # print("Number of achieved QAOA states: {} ".format(len(counts)))
     # print("Ratio of achieved states compared to max states {} ".format((len(counts) / (2 ** len(max_C[0])))*100))
+    # print("Methode: {}".format(method))
     # print("Average: {}".format(M1_sampled))
     # print("Best Cut: {}".format(max_C[1]))
     # print("Best Cut State: {}".format(max_C[0]))
 
-    return M1_sampled, max_C[0], max_C[1], max_Cut_Probability
+    return total_objective_value, best_sampled_cut_string, best_sampled_cut_size, max_Cut_Probability
 
 
 def plotSolution(G, params, p):
@@ -150,19 +149,19 @@ def plotCircuit(G, approximation_List, params, p, backend=None):
         plt.show()
 
 
-def objectiveFunction(input, Graph, approximation_List, p, mixedOptimizerVars = None, inputCut = None, method = None, showHistogram=False, maxCut=None):
+def objectiveFunction(input, Graph, approximation_List, p, mixedOptimizerVars = None, inputCut = None, method = None,method_params =None, showHistogram=False, maxCut=None):
     if mixedOptimizerVars:
         input = mixedOptimizerVars + (list(input))
     results = runQaoa(input, Graph, approximation_List, p)
-    costs, _, bestCut, maxCutChance = compute_costs(results, Graph, showHistogram=showHistogram, method=method, inputCut=inputCut, knownMaxCut=maxCut)
+    costs, _, bestCut, maxCutChance = compute_costs(results, Graph, showHistogram=showHistogram, method=method, method_params=method_params, inputCut=inputCut, knownMaxCut=maxCut)
     if method == "max":
         return -maxCutChance
     return -costs
 
 
-def objectiveFunctionBest(input, Graph, approximation_List, p, knownMaxCut = None, inputCut = None, method = None, showHistogram=False):
+def objectiveFunctionBest(input, Graph, approximation_List, p, knownMaxCut = None, inputCut = None, method = None,method_params =None, showHistogram=False):
     results = runQaoa(input, Graph, approximation_List, p)
-    energy, _, bestCut, maxCutChance = compute_costs(results, Graph, knownMaxCut=knownMaxCut, method=method, showHistogram=showHistogram, inputCut=inputCut)
+    energy, _, bestCut, maxCutChance = compute_costs(results, Graph, knownMaxCut=knownMaxCut, method=method, method_params=method_params, showHistogram=showHistogram, inputCut=inputCut)
     return energy, bestCut, maxCutChance
 
 

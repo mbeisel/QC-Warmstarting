@@ -6,6 +6,21 @@ from scipy.sparse import csr_matrix
 
 class GraphGenerator():
     @classmethod
+    def genMinimalGraph(cls, weightRange=(-10, 10) ):
+        # Generating a 3 node 3 edge graph
+        n = 3
+        V = np.arange(0,n,1)
+        weights = list(np.random.choice(range(weightRange[0], weightRange[1]+1), 3))
+        E =[(0,1,weights[0]),(0,2,weights[1]),(1,2,weights[2])]
+
+        G = nx.Graph()
+        G.add_nodes_from(V)
+        G.add_weighted_edges_from(E)
+
+        return nx.adjacency_matrix(G)
+
+
+    @classmethod
     def genButterflyGraph(cls):
         # Generating the butterfly graph with 5 nodes 
         n = 5
@@ -138,6 +153,8 @@ class GraphPlotter():
         default_axes = plt.axes(frameon=True)
         pos          = nx.circular_layout(G)
 
+
+
         edgeColors = [w.get('weight') for (u,v,w) in G.edges(data=True)]
         nodes = nx.draw_networkx_nodes(G,pos,node_color=colors, node_size=600, alpha=1, ax=default_axes)
         edges = nx.draw_networkx_edges(G,pos,edge_color=edgeColors, edge_cmap=cm.get_cmap("coolwarm"),edge_vmin=-10, edge_vmax=10)
@@ -155,6 +172,9 @@ class GraphPlotter():
         else:
             plt.show()
 
-g = GraphGenerator.genRandomGraph(12,11)
-# g = GraphGenerator.genRegularGraph(16, 3)
-GraphPlotter.plotGraph(g, printWeights=False)
+# g = GraphGenerator.genMinimalGraph()
+# g = GraphGenerator.genRandomGraph(24,138)
+# g = GraphGenerator.genRegularGraph(24, 3)
+# g = GraphGenerator.genFullyConnectedGraph(24)
+# g = GraphGenerator.genGridGraph(4,4)
+# GraphPlotter.plotGraph(g, printWeights=False)
