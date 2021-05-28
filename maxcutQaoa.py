@@ -156,7 +156,7 @@ def objectiveFunction(input, Graph, approximation_List, p, mixedOptimizerVars = 
     if mixedOptimizerVars:
         input = mixedOptimizerVars + (list(input))
     results = runQaoa(input, Graph, approximation_List, p)
-    costs, _, bestCut, maxCutChance, betterCutChance = compute_costs(results, Graph, showHistogram=showHistogram, method=method, method_params=method_params, inputCut=inputCut, knownMaxCut=maxCut)
+    costs, _, bestCut, maxCutChance, betterCutChance = compute_costs(results, Graph, showHistogram=showHistogram, method=method if method != "max" else None, method_params=method_params, inputCut=inputCut, knownMaxCut=maxCut)
     if method == "max":
         return -maxCutChance
     return -costs
