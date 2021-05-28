@@ -97,7 +97,6 @@ def compute_costs(QAOA_results, G,inputCut = None, knownMaxCut = None, method = 
                 total_objective_value += alphaRemaining * z[i][2]
                 break
         total_objective_value /= alpha
-        print(total_objective_value)
 
     # Gibbs
     elif inputCut and method.lower() == "gibbs":
@@ -110,6 +109,10 @@ def compute_costs(QAOA_results, G,inputCut = None, knownMaxCut = None, method = 
     best_sampled_cut_size = np.amax(allCosts)
     best_sampled_cut_string = parseSolution(z[np.where(allCosts == best_sampled_cut_size)[0][0]][0])
 
+    n_samples = np.sum(list(counts.values()))
+    better_cut_probability= 0
+    if (inputCut and n_samples != 0):
+        better_cut_probability = np.sum(np.array([z[i][1] if allCosts[i] > inputCut else 0 for i in range(len(z))])) / n_samples
 
     if (knownMaxCut):
         tupels = np.array(z)[np.where(allCosts == knownMaxCut)]
@@ -128,12 +131,12 @@ def compute_costs(QAOA_results, G,inputCut = None, knownMaxCut = None, method = 
     # print("Best Cut: {}".format(max_C[1]))
     # print("Best Cut State: {}".format(max_C[0]))
 
-    return total_objective_value, best_sampled_cut_string, best_sampled_cut_size, max_Cut_Probability
+    return total_objective_value, best_sampled_cut_string, best_sampled_cut_size, max_Cut_Probability, better_cut_probability
 
 
 def plotSolution(G, params, p):
     results = runQaoa(params, G, p)
-    costs, solution, _, _ = compute_costs(results, G)
+    costs, solution, _, _, _ = compute_costs(results, G)
     GraphPlotter.plotGraph(G, solution)
 
 
@@ -153,7 +156,7 @@ def objectiveFunction(input, Graph, approximation_List, p, mixedOptimizerVars = 
     if mixedOptimizerVars:
         input = mixedOptimizerVars + (list(input))
     results = runQaoa(input, Graph, approximation_List, p)
-    costs, _, bestCut, maxCutChance = compute_costs(results, Graph, showHistogram=showHistogram, method=method, method_params=method_params, inputCut=inputCut, knownMaxCut=maxCut)
+    costs, _, bestCut, maxCutChance, betterCutChance = compute_costs(results, Graph, showHistogram=showHistogram, method=method, method_params=method_params, inputCut=inputCut, knownMaxCut=maxCut)
     if method == "max":
         return -maxCutChance
     return -costs
@@ -161,8 +164,8 @@ def objectiveFunction(input, Graph, approximation_List, p, mixedOptimizerVars = 
 
 def objectiveFunctionBest(input, Graph, approximation_List, p, knownMaxCut = None, inputCut = None, method = None,method_params =None, showHistogram=False):
     results = runQaoa(input, Graph, approximation_List, p)
-    energy, _, bestCut, maxCutChance = compute_costs(results, Graph, knownMaxCut=knownMaxCut, method=method, method_params=method_params, showHistogram=showHistogram, inputCut=inputCut)
-    return energy, bestCut, maxCutChance
+    energy, _, bestCut, maxCutChance, betterCutChance = compute_costs(results, Graph, knownMaxCut=knownMaxCut, method=method, method_params=method_params, showHistogram=showHistogram, inputCut=inputCut)
+    return energy, bestCut, maxCutChance, betterCutChance
 
 
 
