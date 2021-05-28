@@ -112,8 +112,8 @@ def compute_costs(QAOA_results, G,inputCut = None, knownMaxCut = None, method = 
     n_samples = np.sum(list(counts.values()))
     better_cut_probability= 0
     if (inputCut and n_samples != 0):
-        print(method)
-        [print(z[i]) if z[i][2] > inputCut else 0 for i in range(len(z))]
+        # print(method)
+        # [print(z[i]) if z[i][2] > inputCut else 0 for i in range(len(z))]
         better_cut_probability = np.sum(np.array([z[i][1] if z[i][2] > inputCut else 0 for i in range(len(z))])) / n_samples
 
     if (knownMaxCut):
