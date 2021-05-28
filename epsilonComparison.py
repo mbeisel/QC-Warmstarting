@@ -1,7 +1,7 @@
 from helperFunctions import epsilonFunction
 from goemansWilliamson import bestGWcuts
 from copy import deepcopy
-from scipy.optimize import minimize
+from MinimizeWrapper import MinimizeWrapper
 from maxcutQaoa import objectiveFunction, objectiveFunctionBest, cost_function_C
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,7 +10,7 @@ from graphStorage import GraphStorage
 from datetime import datetime
 import os
 
-def compareEpsilon(graph, rawBestCuts, epsilon_range, knownMaxCut=None):
+def compareEpsilon(graph, rawBestCuts, epsilon_range, knownMaxCut=None, method=None, method_params=None):
     warm_means = []
     warm_means_energy = []
     warm_means_prob = []
@@ -34,13 +34,13 @@ def compareEpsilon(graph, rawBestCuts, epsilon_range, knownMaxCut=None):
             print(bestCuts[i])
             for j in range(3):
                 params = [0, np.pi/2]
-                params_warm_optimized = minimize(objectiveFunction, params, method="COBYLA", args=(graph, bestCuts[i,0], p, None, bestCuts[i,1]), options=optimizer_options)
-                energy, bestCut, maxCutChance = objectiveFunctionBest(params_warm_optimized.x, graph, bestCuts[i,0], p, inputCut=bestCuts[i,1], knownMaxCut=knownMaxCut)
+                params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, params, method="COBYLA", args=(graph, bestCuts[i,0], p, None, bestCuts[i,1], method, method_params), options=optimizer_options)
+                energy, bestCut, maxCutChance, betterCutChance = objectiveFunctionBest(params_warm_optimized.x, graph, bestCuts[i,0], p, inputCut=bestCuts[i,1], method=method, method_params=method_params, knownMaxCut=knownMaxCut)
                 warmstart_cutsize.append(bestCut)
                 warmstart_energy.append(energy)
                 warmstart_prob.append(maxCutChance)
-                print("params optimized: {} -> {}, energy measured: {}, cutsize: {}, max cut prob: {}".format(params, params_warm_optimized.x, warmstart_energy[-1], warmstart_cutsize[-1], maxCutChance))
-                rawResults.append("{};{};{};{};{}".format(eps, bestCuts[i,0], energy, bestCut, maxCutChance))
+                print("params optimized: {} -> {}, energy measured: {}, cutsize: {}, max cut prob: {}, better cut prob: {}".format(params, params_warm_optimized.x, warmstart_energy[-1], warmstart_cutsize[-1], maxCutChance, betterCutChance))
+                rawResults.append("{};{};{};{};{};{}".format(eps, bestCuts[i,0], energy, bestCut, maxCutChance, betterCutChance))
             print("{:.2f}%".format(100*(i+1+5*epsilon_range.index(eps))/(len(epsilon_range)*5)))
 
         warm_means.append(np.median(warmstart_cutsize))
@@ -97,8 +97,10 @@ def compareEpsilon(graph, rawBestCuts, epsilon_range, knownMaxCut=None):
 graph_loaded = GraphStorage.load("graphs/fullyConnected-6-paperversion-graph.txt")
 cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-6-paperversion-cuts.txt")
 maxcut = 27
+method = "greedy"
+method_params = None
 
 print(graph_loaded.data)
 print(cuts_loaded)
 
-compareEpsilon(graph_loaded, cuts_loaded[:3], np.arange(0.0, 0.51, 0.25), knownMaxCut=maxcut)
+compareEpsilon(graph_loaded, cuts_loaded[:3], np.arange(0.0, 0.51, 0.1), method=method, method_params=method_params, knownMaxCut=maxcut)
