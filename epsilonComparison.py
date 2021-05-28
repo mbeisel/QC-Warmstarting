@@ -40,7 +40,7 @@ def compareEpsilon(graph, rawBestCuts, epsilon_range, knownMaxCut=None, method=N
                 warmstart_energy.append(energy)
                 warmstart_prob.append(maxCutChance)
                 print("params optimized: {} -> {}, energy measured: {}, cutsize: {}, max cut prob: {}, better cut prob: {}".format(params, params_warm_optimized.x, warmstart_energy[-1], warmstart_cutsize[-1], maxCutChance, betterCutChance))
-                rawResults.append("{};{};{};{};{};{}".format(eps, bestCuts[i,0], energy, bestCut, maxCutChance, betterCutChance))
+                rawResults.append("{};{};{};{};{};{};{}".format(eps, bestCuts[i,0], bestCuts[i,1], energy, bestCut, maxCutChance, betterCutChance))
             print("{:.2f}%".format(100*(i+1+5*epsilon_range.index(eps))/(len(epsilon_range)*5)))
 
         warm_means.append(np.median(warmstart_cutsize))
