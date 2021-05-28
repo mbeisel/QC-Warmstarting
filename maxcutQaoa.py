@@ -54,30 +54,30 @@ def compute_costs(QAOA_results, G,inputCut = None, knownMaxCut = None, method = 
     #without offset
 
     if method == None:
-        total_objective_value = (np.sum(np.array([allCosts[i] * z[i][1] for i in range(len(z))])) / np.sum(list(counts.values())))
+        total_objective_value = (np.sum(np.array([z[i][2] * z[i][1] for i in range(len(z))])) / np.sum(list(counts.values())))
 
     # ENERGY BASED ON ONLY BETTER RESULTS ONLY REWARD GOOD RESULTS
     elif inputCut and method.lower() == "greedy":
         n_samples = np.sum(list(counts.values()))
         if n_samples > 0:
-            total_objective_value =  np.sum(np.array([allCosts[i] * z[i][1] if allCosts[i] > inputCut else 0 for i in range(len(z))])) / n_samples
+            total_objective_value =  np.sum(np.array([z[i][2] * z[i][1] if z[i][2] > inputCut else 0 for i in range(len(z))])) / n_samples
 
     # ENERGY BASED ON ONLY BETTER RESULTS ONLY REWARD GOOD RESULTS - EXTRA REWARDS FOR BEST RESULT
     elif inputCut and method.lower() == "greedy_extra":
         n_samples = np.sum(list(counts.values()))
         if n_samples > 0:
-            total_objective_value =  np.sum(np.array([(allCosts[i] * z[i][1] if allCosts[i] != np.max(allCosts) else (allCosts[i] * z[i][1])*10 ) if allCosts[i] > inputCut else 0 for i in range(len(z))]))/n_samples
+            total_objective_value =  np.sum(np.array([(z[i][2] * z[i][1] if z[i][2] != np.max(allCosts) else (z[i][2]* z[i][1])*10 ) if z[i][2] > inputCut else 0 for i in range(len(z))]))/n_samples
 
     # Exclude initial cut from Energyfunction
     elif inputCut and method.lower() == "ee-i":
-        total_objective_value =  np.sum(np.array([allCosts[i] * z[i][1] if allCosts[i] != inputCut else 0 for i in range(len(z))]))
-        n_samples = np.sum(np.array([z[i][1] if allCosts[i] != inputCut else 0 for i in range(len(z))]))
+        total_objective_value =  np.sum(np.array([z[i][2] * z[i][1] if z[i][2] != inputCut else 0 for i in range(len(z))]))
+        n_samples = np.sum(np.array([z[i][1] if z[i][2] != inputCut else 0 for i in range(len(z))]))
         if n_samples > 0:
             total_objective_value = total_objective_value/n_samples
 
     # Differenz Methode
     elif inputCut and method.lower() == "diff":
-        total_objective_value =  np.sum(np.array([(allCosts[i] - inputCut) * z[i][1] for i in range(len(z))]))
+        total_objective_value =  np.sum(np.array([(z[i][2] - inputCut) * z[i][1] for i in range(len(z))]))
         n_samples = np.sum(list(counts.values()))
         if n_samples > 0:
             total_objective_value = total_objective_value/n_samples
@@ -112,7 +112,9 @@ def compute_costs(QAOA_results, G,inputCut = None, knownMaxCut = None, method = 
     n_samples = np.sum(list(counts.values()))
     better_cut_probability= 0
     if (inputCut and n_samples != 0):
-        better_cut_probability = np.sum(np.array([z[i][1] if allCosts[i] > inputCut else 0 for i in range(len(z))])) / n_samples
+        print(method)
+        [print(z[i]) if z[i][2] > inputCut else 0 for i in range(len(z))]
+        better_cut_probability = np.sum(np.array([z[i][1] if z[i][2] > inputCut else 0 for i in range(len(z))])) / n_samples
 
     if (knownMaxCut):
         tupels = np.array(z)[np.where(allCosts == knownMaxCut)]
