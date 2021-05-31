@@ -108,8 +108,9 @@ def compareWarmStartEnergy(graph, p_range, initialCut, knownMaxCut = None, onlyO
     plt.close()
 
 
-def compareWarmStartEnergyMethods(graph, p_range, initialCut, knownMaxCut = None, onlyOptimizeCurrentP = False, epsilon =0.25, doCold = False, methods = None, method_params = None, labels = None):
-
+def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownMaxCut = None, onlyOptimizeCurrentP = False, epsilon =0.25, doCold = False, methods = None, method_params = None, labels = None):
+    if(initialCut):
+        print("Use: {}".format(initialCut))
     warm_means = []
     warm_value_list = []
     warm_max = []
@@ -141,7 +142,7 @@ def compareWarmStartEnergyMethods(graph, p_range, initialCut, knownMaxCut = None
 
         for i in range(0, 1):
             #optimize j times starting with different startvalues
-            for j in range(3):
+            for j in range(iterations):
                 params_raw = np.concatenate((np.random.default_rng().uniform(0, np.pi, size=2),np.zeros(2*(p-1))))
                 # params_raw = np.zeros(2*p)
                 if doCold ==True:
@@ -341,25 +342,36 @@ def compareWarmStartEnergyMethods(graph, p_range, initialCut, knownMaxCut = None
 # graph_loaded = GraphStorage.load("graphs/minimal-3v-3e-graph.txt")
 # cuts_loaded = GraphStorage.loadGWcuts("graphs/minimal-3v-3e-cuts.txt")
 
-graph_loaded = GraphStorage.load("graphs/fullyConnected-6-paperversion-graph.txt")
-cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-6-paperversion-cuts.txt")
+# graph_loaded = GraphStorage.load("graphs/fullyConnected-6-paperversion-graph.txt")
+# cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-6-paperversion-cuts.txt")
 
 # graph_loaded = GraphStorage.load("graphs/prototype/fc-12-graph.txt")
 # cuts_loaded = GraphStorage.loadGWcuts("graphs/prototype/fc-12-cuts.txt")
+
+# graph_loaded = GraphStorage.load("graphs/prototype/3r-12-graph.txt")
+# cuts_loaded = GraphStorage.loadGWcuts("graphs/prototype/3r-12-cuts.txt")
+
+graph_loaded = GraphStorage.load("graphs/prototype/fc-24-graph.txt")
+cuts_loaded = GraphStorage.loadGWcuts("graphs/prototype/fc-24-cuts.txt")
 
 
 # graph_loaded = GraphGenerator.genDiamondGraph()
 
 print(cuts_loaded)
 
-methods= ["CVar", "gibbs", "greedy",None]
-method_params = [(0.05,),(1,),None,None]
-labels = [r"$F_{0.05,CVar}$", r"$F_{Gibbs}$", r"$F_{Greedy}$",r"$F_{EE}$"]
+# Pick eta close to e^650/maxcut which results in e^eta*cut close to the maximum possible float
+eta= 650/(cuts_loaded[16][1]*1.2)
+print(eta)
+methods= [ "gibbs", "greedy", "CVar", None]
+method_params = [ (1,), None, (0.05,), None]
+labels = [ r"$F_{Gibbs}$", r"$F_{Greedy}$",r"$F_{0.05,CVar}$", r"$F_{EE}$"]
 
 # compareWarmStartEnergy(graph_loaded, [1,2,3,4,5 ], initialCut = [[0,1,0,1], 4], knownMaxCut = 4)
 # compareWarmStartEnergy(graph_loaded, [1,2,3], initialCut = [[0,0,1,1,1,1], 23], knownMaxCut = 27, epsilon=0.325, energymethod=0)
 # compareWarmStartEnergyMethods(graph_loaded, [1,2], initialCut = [[0,0,1,1,1,1], 23], knownMaxCut = 27, epsilon=0.125, n_methods=2, doCold=True, onlyOptimizeCurrentP=True)
-compareWarmStartEnergyMethods(graph_loaded, [1],  initialCut = cuts_loaded[0], knownMaxCut = 27, epsilon=0.3125, methods=methods, method_params=method_params, doCold=True, onlyOptimizeCurrentP=True, labels=labels)
+# compareWarmStartEnergyMethods(graph_loaded, [1],  initialCut = cuts_loaded[0], knownMaxCut = 27, epsilon=0.3125, methods=methods, method_params=method_params, doCold=True, onlyOptimizeCurrentP=True, labels=labels)
+# compareWarmStartEnergyMethods(5, graph_loaded, [1,2],  initialCut = cuts_loaded[16], knownMaxCut = 18, epsilon=0.2, methods=methods, method_params=method_params, doCold=True, onlyOptimizeCurrentP=True, labels=labels)
+compareWarmStartEnergyMethods(3, graph_loaded, [1],  initialCut = cuts_loaded[5], knownMaxCut = 278, epsilon=0.15, methods=methods, method_params=method_params, doCold=True, onlyOptimizeCurrentP=True, labels=labels)
 # compareWarmStartEnergyMethods(graph_loaded, [1],  initialCut = cuts_loaded[15], knownMaxCut = 103, epsilon=0.3125, methods=methods, method_params=method_params, doCold=True, onlyOptimizeCurrentP=True, labels=labels)
 # compareWarmStartEnergy(graph_loaded, [1,2], initialCut = cuts_loaded[0],  knownMaxCut = 95, epsilon=0.325)
 # compareWarmStartEnergyMethods(graph_loaded, [1], initialCut = [[0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0], 88.0],  knownMaxCut = 95, epsilon=0.325)
