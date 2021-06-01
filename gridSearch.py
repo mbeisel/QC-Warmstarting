@@ -15,8 +15,7 @@ from datetime import datetime
 from QAOACircuitGenerator import QAOACircuitGenerator
 
 # Gridsearch for p = 1
-def gridSearch(objective_fun, Graph, approximation_List, cut_size, maxCut, p, gamma_step_size=0.5, gammaStart=0, gammaEnd=np.pi,
-               beta_step_size=0.5, betaStart=0, betaEnd=np.pi, plot=False, method=None, fname=None):
+def gridSearch(objective_fun, Graph, approximation_List, cut_size, maxCut, p, gamma_step_size=0.5, gammaStart=0, gammaEnd=np.pi, beta_step_size=0.5, betaStart=0, betaEnd=np.pi, plot=False, method=None, method_params=None, fname=None):
 
     a_gamma = np.arange(gammaStart, gammaEnd, gamma_step_size)
     a_beta = np.arange(betaStart, betaEnd, beta_step_size)
@@ -47,10 +46,9 @@ def gridSearch(objective_fun, Graph, approximation_List, cut_size, maxCut, p, ga
                 print("opt{}, energy {} bestCut {}, probability {}".format(optimizedparams,energy, bestCut, maxCutChance ))
 
                 # TODO MAX MIN DEPENDENT ON Positive / Negative Values
-            print(energyList)
             F1.append(np.max(energyList))
         else:
-            F1.append(objective_fun([a_gamma[i], a_beta[i]], Graph, approximation_List, p, inputCut=cut_size, method=method, maxCut=maxCut))
+            F1.append(objective_fun([a_gamma[i], a_beta[i]], Graph, approximation_List, p, inputCut=cut_size, method=method, method_params=method_params, maxCut=maxCut))
         print("Current Step: {}".format(i+1)) if (i + 1) % 10 == 0 else None
 
     F1 = np.array(F1)
@@ -59,7 +57,14 @@ def gridSearch(objective_fun, Graph, approximation_List, cut_size, maxCut, p, ga
     result = np.where(F1 == np.amin(F1))
     gamma, beta = a_gamma[result[0][0]], a_beta[result[0][0]]
 
-    # Plot the expetation value F1
+# Write results to file
+    if fname:
+        rawdata = open(fname+"-raw.log", "w")
+        for i in range(len(F1)):
+            rawdata.write(f"{a_gamma[i]};{a_beta[i]};{F1[i]}\n")
+        rawdata.close()
+
+# Plot the expetation value F1
     if plot or fname:
         fig = plt.figure()
         #ax  = fig.gca(projection='3d')
@@ -89,9 +94,9 @@ def gridSearch(objective_fun, Graph, approximation_List, cut_size, maxCut, p, ga
         ax.set_ylabel(r'$\beta_1$', fontsize=16)
 
         cbar = fig.colorbar(img)
-        cbar.ax.set_ylabel("Energy")
+        cbar.ax.set_ylabel("objective value")
     if (fname):
-        plt.savefig(fname, bbox_inches = "tight")
+        plt.savefig(fname+".png", bbox_inches = "tight")
         plt.close()
     else:
         plt.show()
@@ -105,31 +110,32 @@ def gridSearch(objective_fun, Graph, approximation_List, cut_size, maxCut, p, ga
 # GraphStorage.store("graphs/fullyConnected-20-graph.txt", graph)
 # GraphStorage.storeGWcuts("graphs/fullyConnected-20-cuts.txt", cuts)
 
-graph_loaded = GraphStorage.load("graphs/grid-3-4-graph.txt")
-cuts_loaded = GraphStorage.loadGWcuts("graphs/grid-3-4-cuts.txt")
+graph_loaded = GraphStorage.load("graphs/prototype/3r-12-graph.txt")
+cuts_loaded = GraphStorage.loadGWcuts("graphs/prototype/3r-12-cuts.txt")
 
 # graph_loaded = GraphStorage.load("graphs/fullyConnected-12-graph.txt")
 # cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-12-cuts.txt")
-epsilon = 0.25
+epsilon = 0.1
 cuts_loaded = np.array([[epsilonFunction(cut[0], epsilon), cut[1]] for cut in cuts_loaded], dtype=object)
 
 # graph_loaded = GraphGenerator.genDiamondGraph()
 print(cuts_loaded)
-cut_used = cuts_loaded[1]
+cut_used = cuts_loaded[15]
 maxcut = cuts_loaded[-1,1]
-methods = ["max", 0, 1, 2, 3]
+method = "max"
+method_params = None
+res = 20
 
 #cut_used = cuts_loaded[2,0]
 print("Selected GWCut {}; Maxcut: {}".format(cut_used, maxcut))
 
-for method in methods:
-    filename = "results/Gridsearch-"+datetime.now().strftime("%Y-%m-%d_%H-%M-%S_")+str(len(cut_used[0]))+"-"+str(cut_used[1])+"-method"+str(method)+"-eps"+str(epsilon)+".png"
-    params, min_energy = gridSearch(
-        objectiveFunction,
-        graph_loaded, cut_used[0], cut_used[1], maxcut,
-        1,
-        gamma_step_size=np.pi/10, gammaStart=-np.pi*0, gammaEnd=np.pi*2,
-        betaEnd=np.pi, beta_step_size=np.pi/10,
-        method=method, plot=True, fname=filename)
+filename = "results-prot/Gridsearch-"+datetime.now().strftime("%Y-%m-%d_%H-%M-%S_")+str(len(cut_used[0]))+"-"+str(cut_used[1])+"-method"+str(method)+str(method_params)+"-eps"+str(epsilon)
+params, min_energy = gridSearch(
+    objectiveFunction,
+    graph_loaded, cut_used[0], cut_used[1], maxcut,
+    1,
+    gamma_step_size=np.pi/res, gammaStart=0, gammaEnd=np.pi*2+np.pi/res,
+    betaStart=0, betaEnd=np.pi+np.pi/res, beta_step_size=np.pi/res,
+    method=method, method_params=method_params, plot=True, fname=filename)
 
-    print("Params: {}, Min energy: {}".format(params, min_energy))
+print("Params: {}, Min energy: {}".format(params, min_energy))

@@ -32,7 +32,7 @@ def compareEpsilon(graph, rawBestCuts, epsilon_range, knownMaxCut=None, method=N
         optimizer_options = None# ({"rhobeg": 0.2, "disp": False})#, "maxiter": 10})# to limit optimizer iterations
         for i in range(len(bestCuts)):
             print(bestCuts[i])
-            for j in range(3):
+            for j in range(20):
                 params = [0, np.pi/2]
                 params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, params, method="COBYLA", args=(graph, bestCuts[i,0], p, None, bestCuts[i,1], method, method_params), options=optimizer_options)
                 energy, bestCut, maxCutChance, betterCutChance = objectiveFunctionBest(params_warm_optimized.x, graph, bestCuts[i,0], p, inputCut=bestCuts[i,1], method=method, method_params=method_params, knownMaxCut=knownMaxCut)
@@ -70,9 +70,9 @@ def compareEpsilon(graph, rawBestCuts, epsilon_range, knownMaxCut=None, method=N
     ax2.scatter(epsilon_range, warm_means_prob, marker="v", color="green", label="mean probability", alpha=.5)
     fig.subplots_adjust(bottom=0.22), fig.legend(loc="lower center", ncol=3), ax2.set_ylabel("max cut probability")
 
-    add_to_name = "_"+str(len(bestCuts[0][0]))
+    add_to_name = "_"+str(len(bestCuts[0][0]))+"method"+str(method)+("" if not method_params else str(method_params))
     time =  datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + add_to_name
-    path = os.getcwd() + "/results/" + time
+    path = os.getcwd() + "/results-prot/" + time + str(method)+("" if not method_params else str(method_params))
     print ("The current working directory is %s" % path)
     try:
         os.mkdir(path)
@@ -94,13 +94,14 @@ def compareEpsilon(graph, rawBestCuts, epsilon_range, knownMaxCut=None, method=N
 # GraphStorage.store("graphs/fullyConnected-20-graph.txt", graph)
 # GraphStorage.storeGWcuts("graphs/fullyConnected-20-cuts.txt", cuts)
 
-graph_loaded = GraphStorage.load("graphs/fullyConnected-6-paperversion-graph.txt")
-cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-6-paperversion-cuts.txt")
-maxcut = 27
-method = "greedy"
+graph_loaded = GraphStorage.load("graphs/prototype/fc-12-graph.txt")
+cuts_loaded = GraphStorage.loadGWcuts("graphs/prototype/fc-12-cuts.txt")
+method = "ee-i"
 method_params = None
+cuts_loaded = np.array(cuts_loaded, dtype=object)
+maxcut = cuts_loaded[-1,1]
 
 print(graph_loaded.data)
 print(cuts_loaded)
 
-compareEpsilon(graph_loaded, cuts_loaded[:3], np.arange(0.0, 0.51, 0.1), method=method, method_params=method_params, knownMaxCut=maxcut)
+compareEpsilon(graph_loaded, cuts_loaded[[12,17]], np.arange(0.0, 0.51, 0.025), method=method, method_params=method_params, knownMaxCut=maxcut)
