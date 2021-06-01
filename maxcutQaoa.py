@@ -52,7 +52,7 @@ def compute_costs(QAOA_results, G,inputCut = None, knownMaxCut = None, method = 
     #with offset
     # M1_sampled = (np.sum(np.array([allCosts[i] * z[i][1] for i in range(len(z))])) / np.sum(list(counts.values()))) - totalCost(G)
     #without offset
-
+    total_objective_value = 0
     if method == None:
         total_objective_value = (np.sum(np.array([z[i][2] * z[i][1] for i in range(len(z))])) / np.sum(list(counts.values())))
 

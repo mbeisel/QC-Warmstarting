@@ -171,9 +171,7 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownM
                     coldstart.append(energyCold)
                     coldstartMaxCutProb.append(maxCutChanceCold)
                     coldstartBetterCutProb.append(betterCutChanceCold)
-
-
-
+                    print("maxcutchance for coldstart:{} at j={}".format(maxCutChanceCold, j))
 
 
 
@@ -185,13 +183,10 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownM
                 for methodCount, method in enumerate(methods):
                     params = copy(params_raw)
 
-
                     if(p > 1):
                         if(bestParamsForP[methodCount][count-1][0] != -999999999):
                             for e in range(p_range[count-1]*2):
                                 params[e] = bestParamsForP[methodCount][count-1][1][e]
-
-
 
                     #optimize k times with the same startvalues and take the best
                     for k in range(1):
@@ -283,6 +278,10 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownM
         print ("Successfully created the directory %s " % path)
 
 
+    rawResultsFile = open(path + "/raw"+add_to_name+".log", "w")
+    rawResultsFile.write("\n".join(raw_results))
+    rawResultsFile.close()
+
     methodValues = [[] for methodCount in range(len(methods))]
     #probabilitygraph
     print(warm_MaxCutProb_Values)
@@ -340,9 +339,7 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownM
     plt.show()
     plt.close()
 
-    rawResultsFile = open(path + "/raw"+add_to_name+".log", "w")
-    rawResultsFile.write("\n".join(raw_results))
-    rawResultsFile.close()
+
 
 
 
@@ -366,11 +363,11 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownM
 # graph_loaded = GraphStorage.load("graphs/minimal-3v-3e-graph.txt")
 # cuts_loaded = GraphStorage.loadGWcuts("graphs/minimal-3v-3e-cuts.txt")
 
-# graph_loaded = GraphStorage.load("graphs/fullyConnected-6-paperversion-graph.txt")
-# cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-6-paperversion-cuts.txt")
+graph_loaded = GraphStorage.load("graphs/fullyConnected-6-paperversion-graph.txt")
+cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-6-paperversion-cuts.txt")
 
-graph_loaded = GraphStorage.load("graphs/prototype/fc-12-graph.txt")
-cuts_loaded = GraphStorage.loadGWcuts("graphs/prototype/fc-12-cuts.txt")
+# graph_loaded = GraphStorage.load("graphs/prototype/fc-12-graph.txt")
+# cuts_loaded = GraphStorage.loadGWcuts("graphs/prototype/fc-12-cuts.txt")
 
 # graph_loaded = GraphStorage.load("graphs/prototype/3r-12-graph.txt")
 # cuts_loaded = GraphStorage.loadGWcuts("graphs/prototype/3r-12-cuts.txt")
@@ -384,21 +381,22 @@ cuts_loaded = GraphStorage.loadGWcuts("graphs/prototype/fc-12-cuts.txt")
 print(cuts_loaded)
 
 # Pick eta close to e^650/maxcut which results in e^eta*cut close to the maximum possible float
-eta= 650/(cuts_loaded[16][1]*1.2)
+initial_cut = cuts_loaded[2]
+eta= 650/(initial_cut[1]*1.2)
 print(eta)
 methods= [ "gibbs", "greedy", "CVar", None]
-method_params = [ (1,), None, (0.05,), None]
-methods= [ "gibbs", "greedy"]
-method_params = [ (1,), None]
+method_params = [ (eta,), None, (0.05,), None]
+# methods= [ "gibbs", "greedy"]
+# method_params = [ (eta,), None]
 labels = [ r"$F_{Gibbs}$", r"$F_{Greedy}$",r"$F_{0.05,CVar}$", r"$F_{EE}$"]
 knownMaxCut = np.array(cuts_loaded[-1][1])
-epsilon = 0.2
-doCold = False
+epsilon = 0.325
+doCold = True
 onlyOptimizeCurrentP = True
 j = 1
 p = [1,2]
 
-compareWarmStartEnergyMethods(j, graph_loaded, p,  initialCut = cuts_loaded[15], knownMaxCut = knownMaxCut, epsilon=epsilon, methods=methods, method_params=method_params, doCold=doCold, onlyOptimizeCurrentP=onlyOptimizeCurrentP, labels=labels)
+compareWarmStartEnergyMethods(j, graph_loaded, p,  initialCut = initial_cut, knownMaxCut = knownMaxCut, epsilon=epsilon, methods=methods, method_params=method_params, doCold=doCold, onlyOptimizeCurrentP=onlyOptimizeCurrentP, labels=labels)
 
 
 
