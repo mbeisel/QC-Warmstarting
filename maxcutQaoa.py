@@ -85,6 +85,7 @@ def compute_costs(QAOA_results, G,inputCut = None, knownMaxCut = None, method = 
     # CVar
     elif inputCut and method.lower() == "cvar":
         z.sort(key=takeThird, reverse=True)
+        allCosts = -np.sort(-allCosts)
         total_objective_value = 0
         alpha, *_ = method_params
         alpha *= np.ceil(np.sum(list(counts.values())))
