@@ -15,3 +15,14 @@ def takeThird(elem):
     return elem[2]
 def parseSolution(sol):
     return [int(i) for i in sol]
+
+def hammingDistance(s1, s2, allowInverse = False):
+    distance = 0
+    for i,char in enumerate(s1):
+        if char != s2[i]:
+            distance+=1
+    if allowInverse and distance > len(s1)/2:
+        return len(s1) - distance
+    return distance
+
+
