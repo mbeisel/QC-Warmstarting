@@ -110,7 +110,7 @@ def compareWarmStartEnergy(graph, p_range, initialCut, knownMaxCut = None, onlyO
     plt.close()
 
 
-def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownMaxCut = None, onlyOptimizeCurrentP = False, epsilon =0.25, doCold = False, methods = None, doIncremental=True, method_params = None, labels = None):
+def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownMaxCut = None, onlyOptimizeCurrentP = False, epsilon =0.25, doCold = False, methods = None, doIncremental=True, method_params = None, labels = None, useBestParmas = False):
     if(initialCut):
         print("Use: {}".format(initialCut))
     warm_means = []
@@ -127,6 +127,8 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownM
     bestParamsForPcold = [[-999999999,None] for i in range(len(p_range))]
     optimizer_options = None
     raw_results = []
+    warmAllMethodParams = [[[] for i in range(iterations)] for i in range(len(methods))]
+    coldAllParams = [[] for i in range(iterations)]
 
 
     p_range = list(p_range)
@@ -135,9 +137,11 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownM
         warmstart = [[] for i in range(len(methods))]
         warmstartMaxCutProb = [[] for i in range(len(methods))]
         warmstartBetterCutProb = [[] for i in range(len(methods))]
+
         coldstart = []
         coldstartMaxCutProb = []
         coldstartBetterCutProb = []
+
 
 
         for i in range(0, 1):
@@ -149,8 +153,12 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownM
                     params_cold = copy(params_raw)
 
                     if( p > 1 and doIncremental and bestParamsForPcold[count-1][0] != -999999999):
-                        for e in range(p_range[count-1]*2):
-                            params_cold[e] = bestParamsForPcold[count-1][1][e]
+                        if not useBestParmas:
+                            for e in range(p_range[count-1]*2):
+                                params_cold[e] = coldAllParams[j][e]
+                        else:
+                            for e in range(p_range[count-1]*2):
+                                params_cold[e] = bestParamsForPcold[count-1][1][e]
 
                     if onlyOptimizeCurrentP == True:
 
@@ -167,10 +175,13 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownM
                     if bestParamsForPcold[count][0] < energyCold:
                         bestParamsForPcold[count][0] = energyCold
                         bestParamsForPcold[count][1] = list(params_cold_optimized.bestValue[0])
+                    if not useBestParmas:
+                        coldAllParams[j] = list(params_cold_optimized.bestValue[0])
                     coldstart.append(energyCold)
                     coldstartMaxCutProb.append(maxCutChanceCold)
                     coldstartBetterCutProb.append(betterCutChanceCold)
                     print("maxcutchance for coldstart:{} at j={}".format(maxCutChanceCold, j))
+
 
 
 
@@ -183,8 +194,12 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownM
                     params = copy(params_raw)
 
                     if(p > 1 and doIncremental and bestParamsForP[methodCount][count-1][0] != -999999999):
-                        for e in range(p_range[count-1]*2):
-                            params[e] = bestParamsForP[methodCount][count-1][1][e]
+                        if not useBestParmas:
+                            for e in range(p_range[count-1]*2):
+                                params[e] = warmAllMethodParams[methodCount][j][e]
+                        else:
+                            for e in range(p_range[count-1]*2):
+                                params[e] = bestParamsForP[methodCount][count-1][1][e]
 
                     #optimize k times with the same startvalues and take the best
                     for k in range(1):
@@ -205,6 +220,8 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownM
                         if bestParamsForP[methodCount][count][0] < energyWarm:
                             bestParamsForP[methodCount][count][0] = energyWarm
                             bestParamsForP[methodCount][count][1] = list(params_warm_optimized.bestValue[0])
+                        if not useBestParmas:
+                            warmAllMethodParams[methodCount][j] = list(params_warm_optimized.bestValue[0])
                         energyWarmList[methodCount].append(energyWarm)
                         cutWarmList[methodCount].append(cutWarm)
                         maxCutChanceWarmList[methodCount].append(maxCutChanceWarm)
@@ -213,6 +230,7 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownM
                     warmstartMaxCutProb[methodCount].append(np.max(maxCutChanceWarmList[methodCount]))
                     warmstartBetterCutProb[methodCount].append(np.max(betterCutChanceWarmList[methodCount]))
                     print("maxcutchance for method {}:{} at j={}".format(method, np.max(maxCutChanceWarmList[methodCount]), j))
+
 
             print("{:.2f}%".format(100 * (i + 1 + 5 * p_range.index(p)) / (len(p_range) * 5)))
 
@@ -382,20 +400,24 @@ print(cuts_loaded)
 initial_cut = cuts_loaded[2]
 eta= 650/(initial_cut[1]*1.2)
 print(eta)
-# methods= [ "gibbs", "greedy", "CVar", None]
-# method_params = [ (eta,), None, (0.05,), None]
-methods= [ "gibbs", "greedy"]
+
 method_params = [ (eta,), None]
-labels = [ r"$F_{Gibbs}$", r"$F_{Greedy}$",r"$F_{0.05,CVar}$", r"$F_{EE}$"]
+methods= [ None, "greedy"]
+labels = [ r"$F_{EE}$", r"$F_{Greedy}$"]
+# method_params = [ None, None]
+# methods= [ None, "CVaR", "Gibbs", "Greedy", "ee-i"]
+# method_params = [ None, (0.05,), (5,), None, None]
+# labels = [ r"$F_{EE}$", r"$F_{0.05,CVar}$", r"$F_{5,Gibbs}$", r"$F_{Greedy}$", r"$F_{EE-I}$"]
 knownMaxCut = np.array(cuts_loaded[-1][1])
-epsilon = 0.25
+epsilon = 0.125
 doCold = True
-doIncremental = False
-onlyOptimizeCurrentP = False
-j = 2
+doIncremental = True
+onlyOptimizeCurrentP = True
+useBestParams = False  #requires doIncremental = True
+j = 3
 p = [1,2,3]
 
-compareWarmStartEnergyMethods(j, graph_loaded, p,  initialCut = initial_cut, knownMaxCut = knownMaxCut, epsilon=epsilon, methods=methods, method_params=method_params, doCold=doCold, doIncremental=doIncremental, onlyOptimizeCurrentP=onlyOptimizeCurrentP, labels=labels)
+compareWarmStartEnergyMethods(j, graph_loaded, p,  initialCut = initial_cut, knownMaxCut = knownMaxCut, epsilon=epsilon, methods=methods, method_params=method_params, doCold=doCold, doIncremental=doIncremental, onlyOptimizeCurrentP=onlyOptimizeCurrentP, labels=labels, useBestParmas=useBestParams)
 
 
 

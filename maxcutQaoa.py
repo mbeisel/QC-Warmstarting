@@ -53,7 +53,7 @@ def compute_costs(QAOA_results, G,inputCut = None, knownMaxCut = None, method = 
     # M1_sampled = (np.sum(np.array([allCosts[i] * z[i][1] for i in range(len(z))])) / np.sum(list(counts.values()))) - totalCost(G)
     #without offset
     total_objective_value = 0
-    if method == None:
+    if method is None or method == "ee":
         total_objective_value = (np.sum(np.array([z[i][2] * z[i][1] for i in range(len(z))])) / np.sum(list(counts.values())))
 
     # ENERGY BASED ON ONLY BETTER RESULTS ONLY REWARD GOOD RESULTS
@@ -126,6 +126,15 @@ def compute_costs(QAOA_results, G,inputCut = None, knownMaxCut = None, method = 
         plot_histogram(counts)
         plt.show()
         print("rank {}".format(np.where(allCosts == best_sampled_cut_size)[0][0]))
+
+    # print hamming distance for certain MANUALLY INPUT CUT
+    # z = list(z)
+    # z.sort(key=takeSecond, reverse=True)
+    # most_common_samples = z[:13]
+    # print(most_common_samples)
+    # for bitstring in most_common_samples:
+    #     print(hammingDistance(bitstring[0], "000001110101", True))
+
     # print("Max number of states: {} ".format(2 ** len(max_C[0])))
     # print("Number of achieved QAOA states: {} ".format(len(counts)))
     # print("Ratio of achieved states compared to max states {} ".format((len(counts) / (2 ** len(max_C[0])))*100))
