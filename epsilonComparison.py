@@ -33,9 +33,9 @@ def compareEpsilon(graph, rawBestCuts, epsilon_range, knownMaxCut=None, method=N
         for i in range(len(bestCuts)):
             print(bestCuts[i])
             for j in range(20):
-                params = [0, np.pi/2]
+                params = np.random.default_rng().uniform(0, np.pi, size=2)
                 params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, params, method="COBYLA", args=(graph, bestCuts[i,0], p, None, bestCuts[i,1], method, method_params), options=optimizer_options)
-                energy, bestCut, maxCutChance, betterCutChance = objectiveFunctionBest(params_warm_optimized.x, graph, bestCuts[i,0], p, inputCut=bestCuts[i,1], method=method, method_params=method_params, knownMaxCut=knownMaxCut)
+                energy, bestCut, maxCutChance, betterCutChance = objectiveFunctionBest(params_warm_optimized.bestValue[0], graph, bestCuts[i,0], p, inputCut=bestCuts[i,1], method=method, method_params=method_params, knownMaxCut=knownMaxCut)
                 warmstart_cutsize.append(bestCut)
                 warmstart_energy.append(energy)
                 warmstart_prob.append(maxCutChance)
