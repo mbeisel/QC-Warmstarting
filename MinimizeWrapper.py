@@ -20,6 +20,7 @@ class MinimizeWrapper():
         minimizationResult.optimizationPath = self.optimizationPath
         index = np.argmin(np.array(self.optimizationPath, dtype=object)[:,1])
         minimizationResult.bestValue = self.optimizationPath[index]
+        minimizationResult.bestIsIntermediate = True if index != len(self.optimizationPath)-1 else False
         return minimizationResult
 
 
