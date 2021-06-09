@@ -30,8 +30,8 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownM
     cold_BetterCutProb_Values = []
     bestParamsForPcold = [[-999999999,None] for i in range(len(p_range))]
     optimizer_options = None
-    raw_median_results = ["doincremental:{}; onlyOptimizeCurrentP:{}; useBestParams:{}".format(doIncremental, onlyOptimizeCurrentP, useBestParams)]
-    raw_all_results =  ["doincremental:{}; onlyOptimizeCurrentP:{}; useBestParams:{}".format(doIncremental, onlyOptimizeCurrentP, useBestParams)]
+    raw_median_results = ["doincremental:{}; onlyOptimizeCurrentP:{}; useBestParams:{}; epsilon:{}".format(doIncremental, onlyOptimizeCurrentP, useBestParams, epsilon)]
+    raw_all_results =  ["doincremental:{}; onlyOptimizeCurrentP:{}; useBestParams:{}; epsilon:{}".format(doIncremental, onlyOptimizeCurrentP, useBestParams, epsilon)]
     warmAllMethodParams = [[[] for i in range(iterations)] for i in range(len(methods))]
     coldAllParams = [[] for i in range(iterations)]
 
