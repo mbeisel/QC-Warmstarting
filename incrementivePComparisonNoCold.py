@@ -1,7 +1,6 @@
 import os
 
 from matplotlib import cm
-
 from graphGenerator import GraphGenerator
 from graphStorage import GraphStorage
 from helperFunctions import epsilonFunction
@@ -16,7 +15,7 @@ from MinimizeWrapper import MinimizeWrapper
 
 def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownMaxCut = None, onlyOptimizeCurrentP = False, epsilon =0.25, doCold = False, methods = None, doIncremental=True, method_params = None, labels = None, useBestParmas = False):
     if(initialCut):
-        print("Use: {}".format(initialCut))
+        print("Use: {} with epsilon: {}".format(initialCut, epsilon))
     warm_means = []
     warm_value_list = []
     warm_MaxCutProb = [[] for i in range(len(methods))]
@@ -36,6 +35,7 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownM
     coldAllParams = [[] for i in range(iterations)]
 
 
+
     p_range = list(p_range)
     bestParamsForP = [[[-999999999,None] for i in range(len(p_range))] for i in range(len(methods))]
     for count,p in enumerate(p_range):
@@ -47,7 +47,8 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownM
         coldstartMaxCutProb = []
         coldstartBetterCutProb = []
 
-
+        optimizerStepsList, runtimeList = [[] for i in range(len(methods))], [[] for i in range(len(methods))]
+        optimizerStepsListCold, runtimeListCold = [],[]
 
         for i in range(0, 1):
             #optimize j times starting with different startvalues
@@ -66,9 +67,7 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownM
                         else:
                             for e in range(p_range[count-1]*2):
                                 params_cold[e] = bestParamsForPcold[count-1][1][e]
-
                     if onlyOptimizeCurrentP == True:
-
                         params_cold_optimized = MinimizeWrapper().minimize(objectiveFunction, params_cold[p_range[count-1]*2:] if p > 1 else params_cold, method="Cobyla",
                                                          args=(graph, None, p, list(params_cold[:p_range[count-1]*2]) if p > 1 else None), options=optimizer_options)
                         if p > 1:
@@ -87,8 +86,10 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownM
                     coldstart.append(energyCold)
                     coldstartMaxCutProb.append(maxCutChanceCold)
                     coldstartBetterCutProb.append(betterCutChanceCold)
+                    optimizerStepsListCold.append(len(params_cold_optimized.optimizationPath))
+                    runtimeListCold.append(params_cold_optimized.optimizationTime)
                     print("maxcutchance for coldstart:{} at j={}".format(maxCutChanceCold, j))
-                    raw_all_results.append("{};{},{};{};{};{};{}".format(p,j, "cold", energyCold, maxCutChanceCold, 0, ','.join(list(str(e) for e in params_cold_optimized.bestValue[0]))))
+                    raw_all_results.append("{};{},{};{};{};{};{};{};{}".format(p,j, "cold", energyCold, maxCutChanceCold, 0, ','.join(list(str(e) for e in params_cold_optimized.bestValue[0])),optimizerStepsListCold[j], runtimeListCold[j]))
 
 
 
@@ -126,8 +127,6 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownM
                         energyWarm, cutWarm, maxCutChanceWarm, betterCutChanceWarm = objectiveFunctionBest(params_warm_optimized.bestValue[0], graph, bestCut, p,
                                                                                       knownMaxCut= knownMaxCut,
                                                                                       showHistogram=False, inputCut=initialCut[1], method=method, method_params=method_params[methodCount])
-
-                        print(params_warm_optimized)
                         if bestParamsForP[methodCount][count][0] < energyWarm:
                             bestParamsForP[methodCount][count][0] = energyWarm
                             bestParamsForP[methodCount][count][1] = list(params_warm_optimized.bestValue[0])
@@ -138,14 +137,16 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownM
                         maxCutChanceWarmList[methodCount].append(maxCutChanceWarm)
                         betterCutChanceWarmList[methodCount].append(betterCutChanceWarm)
                         paramsWarmList[methodCount].append(list(params_warm_optimized.bestValue[0]))
+                        optimizerStepsList[methodCount].append(len(params_warm_optimized.optimizationPath))
+                        runtimeList[methodCount].append(params_warm_optimized.optimizationTime)
                     warmstart[methodCount].append(np.max(energyWarmList[methodCount]))
                     warmstartMaxCutProb[methodCount].append(np.max(maxCutChanceWarmList[methodCount]))
                     warmstartBetterCutProb[methodCount].append(np.max(betterCutChanceWarmList[methodCount]))
                     print("maxcutchance for method {}:{} at j={}".format(method, np.max(maxCutChanceWarmList[methodCount]), j))
-                    raw_all_results.append("{};{};{};{};{};{};{}".format(p,j, method, np.max(energyWarmList[methodCount]), np.max(maxCutChanceWarmList[methodCount]), np.max(betterCutChanceWarmList[methodCount]), ','.join(list(str(e) for e in paramsWarmList[methodCount][0]))))
+                    raw_all_results.append("{};{};{};{};{};{};{};{}".format(p,j, method, np.max(energyWarmList[methodCount]), np.max(maxCutChanceWarmList[methodCount]), np.max(betterCutChanceWarmList[methodCount]), ','.join(list(str(e) for e in paramsWarmList[methodCount][0])), optimizerStepsList[methodCount][j],runtimeList[methodCount][j]))
 
 
-            print("{:.2f}%".format(100 * (i + 1 + 5 * p_range.index(p)) / (len(p_range) * 5)))
+            print("{:.2f}%".format(100 * (p/len(p_range))))
 
         print("WARMSTARTPROB")
         print(warmstartMaxCutProb)
@@ -153,7 +154,7 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownM
             warm_MaxCutProb[h].append(np.median(warmstartMaxCutProb[h])*100)
             warm_BetterCutProb[h].append(np.median(warmstartBetterCutProb[h])*100)
             # save p, method, energy_median, maxcutchance_median, bettercutchance_median
-            raw_median_results.append("{};{};{};{};{}".format(p, methods[h], np.median(warmstart[h]), np.median(warmstartMaxCutProb[h]), np.median(warmstartBetterCutProb[h])))
+            raw_median_results.append("{};{};{};{};{};{};{}".format(p, methods[h], np.median(warmstart[h]), np.median(warmstartMaxCutProb[h]), np.median(warmstartBetterCutProb[h]), np.mean(optimizerStepsList[h]),np.mean(runtimeList[h])))
         warm_MaxCutProb_Values.append([[p for i in range(len(warmstartMaxCutProb))], np.array(warmstartMaxCutProb)*100])
         warm_BetterCutProb_Values.append([[p for i in range(len(warmstartBetterCutProb))], np.array(warmstartBetterCutProb)*100])
         warm_means.append(np.median(warmstart))
@@ -162,7 +163,7 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownM
             cold_MaxCutProb.append(np.median(coldstartMaxCutProb)*100)
             cold_BetterCutProb.append(np.median(coldstartBetterCutProb)*100)
             # save p, method, energy_median, maxcutchance_median, bettercutchance_median
-            raw_median_results.append("{};{};{};{};{}".format(p, "cold", np.median(coldstart), np.median(coldstartMaxCutProb), np.median(coldstartBetterCutProb)))
+            raw_median_results.append("{};{};{};{};{};{};{}".format(p, "cold", np.median(coldstart), np.median(coldstartMaxCutProb), np.median(coldstartBetterCutProb), np.mean(optimizerStepsListCold), np.mean(runtimeListCold)))
             # cold_MaxCutProb_Values.append(coldstartMaxCutProb)
             for prob in coldstartMaxCutProb:
                 cold_MaxCutProb_Values.append([p, prob*100])

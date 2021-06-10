@@ -12,15 +12,19 @@ class MinimizeWrapper():
                  callback=None, options=None):
         self.optimizationPath = []
         self.objectiveFunction = fun
+        import time
+        t1 = time.time()
 
         minimizationResult = minimize(self.wrapObjectiveFunction, x0, args=args, method=method, jac=jac, hess=hess,
                  hessp=hessp, bounds=bounds, constraints=constraints, tol=tol,
                  callback=callback, options=options)
 
+        t2 = time.time()
         minimizationResult.optimizationPath = self.optimizationPath
         index = np.argmin(np.array(self.optimizationPath, dtype=object)[:,1])
         minimizationResult.bestValue = self.optimizationPath[index]
         minimizationResult.bestIsIntermediate = True if index != len(self.optimizationPath)-1 else False
+        minimizationResult.optimizationTime = t2-t1
         return minimizationResult
 
 
