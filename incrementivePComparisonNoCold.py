@@ -1,11 +1,11 @@
 import os
 
+
 from matplotlib import cm
 from graphGenerator import GraphGenerator
 from graphStorage import GraphStorage
-from helperFunctions import epsilonFunction
 from copy import copy
-from maxcutQaoa import objectiveFunction, objectiveFunctionBest, totalCost, cost_function_C
+from maxcutQaoa import objectiveFunction, objectiveFunctionBest
 import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
@@ -13,193 +13,196 @@ from MinimizeWrapper import MinimizeWrapper
 
 
 
-def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownMaxCut = None, onlyOptimizeCurrentP = False, epsilon =0.25, doCold = False, methods = None, doIncremental=True, method_params = None, labels = None, useBestParmas = False):
-    if(initialCut):
-        print("Use: {} with epsilon: {}".format(initialCut, epsilon))
+def compareWarmStartEnergyMethods(iterations, graph, p_range, initial_cut, known_max_cut = None, only_optimize_current_p = False, epsilon =0.25, do_cold = False, methods = None, do_incremental=True, method_params = None, labels = None, use_best_parmas = False, optimize_epsilon=False):
+    if(initial_cut):
+        print("Use: {} with epsilon: {}".format(initial_cut, epsilon))
     warm_means = []
     warm_value_list = []
-    warm_MaxCutProb = [[] for i in range(len(methods))]
-    warm_MaxCutProb_Values = []
-    warm_BetterCutProb = [[] for i in range(len(methods))]
-    warm_BetterCutProb_Values = []
+    warm_max_cut_prob = [[] for i in range(len(methods))]
+    warm_max_cut_prob_values = []
+    warm_better_cut_prob = [[] for i in range(len(methods))]
+    warm_better_cut_prob_values = []
     cold_means = []
-    cold_MaxCutProb = []
-    cold_MaxCutProb_Values = []
-    cold_BetterCutProb = []
-    cold_BetterCutProb_Values = []
-    bestParamsForPcold = [[-999999999,None] for i in range(len(p_range))]
+    cold_max_cut_prob = []
+    cold_max_cut_prob_values = []
+    cold_better_cut_prob = []
+    cold_better_cut_prob_values = []
+    best_params_for_pcold = [[-999999999,None] for i in range(len(p_range))]
     optimizer_options = None
-    raw_median_results = ["doincremental:{}; onlyOptimizeCurrentP:{}; useBestParams:{}; epsilon:{}".format(doIncremental, onlyOptimizeCurrentP, useBestParams, epsilon)]
-    raw_all_results =  ["doincremental:{}; onlyOptimizeCurrentP:{}; useBestParams:{}; epsilon:{}".format(doIncremental, onlyOptimizeCurrentP, useBestParams, epsilon)]
-    warmAllMethodParams = [[[] for i in range(iterations)] for i in range(len(methods))]
-    coldAllParams = [[] for i in range(iterations)]
+    raw_median_results = ["doincremental:{}; onlyOptimizeCurrentP:{}; useBestParams:{}; epsilon:{}; initialCut:{}".format(do_incremental, only_optimize_current_p, use_best_params, epsilon, initial_cut)]
+    raw_all_results = ["doincremental:{}; onlyOptimizeCurrentP:{}; useBestParams:{}; epsilon:{}; initialCut:{}".format(do_incremental, only_optimize_current_p, use_best_params, epsilon, initial_cut)]
+    warm_all_method_params = [[[] for i in range(iterations)] for i in range(len(methods))]
+    cold_all_params = [[] for i in range(iterations)]
 
 
 
     p_range = list(p_range)
-    bestParamsForP = [[[-999999999,None] for i in range(len(p_range))] for i in range(len(methods))]
+    best_params_for_p = [[[-999999999,None] for i in range(len(p_range))] for i in range(len(methods))]
     for count,p in enumerate(p_range):
-        warmstart = [[] for i in range(len(methods))]
-        warmstartMaxCutProb = [[] for i in range(len(methods))]
-        warmstartBetterCutProb = [[] for i in range(len(methods))]
+        warmstart, warmstart_max_cut_prob, warmstart_better_cut_prob = [[] for i in range(len(methods))], [[] for i in range(len(methods))], [[] for i in range(len(methods))]
+        coldstart, coldstart_max_cut_prob, coldstart_better_cut_prob = [], [], []
 
-        coldstart = []
-        coldstartMaxCutProb = []
-        coldstartBetterCutProb = []
-
-        optimizerStepsList, runtimeList = [[] for i in range(len(methods))], [[] for i in range(len(methods))]
-        optimizerStepsListCold, runtimeListCold = [],[]
+        optimizer_steps_list, runtime_list = [[] for i in range(len(methods))], [[] for i in range(len(methods))]
+        optimizer_steps_list_cold, runtime_list_cold = [], []
 
         for i in range(0, 1):
             #optimize j times starting with different startvalues
             for j in range(iterations):
+
+                #################
+                #   Coldstart   #
+                #################
+
                 params_raw = np.random.default_rng().uniform(0, np.pi, size=p*2)
-                if doIncremental and p > 1:
+                if do_incremental and p > 1:
                     params_raw = np.concatenate((np.random.default_rng().uniform(0, np.pi, size=2),np.zeros(2*(p-1))))
                     # params_raw = np.zeros(2*p)
-                if doCold ==True:
+                if do_cold ==True:
                     params_cold = copy(params_raw)
 
-                    if( p > 1 and doIncremental and bestParamsForPcold[count-1][0] != -999999999):
-                        if not useBestParmas:
+                    if( p > 1 and do_incremental and best_params_for_pcold[count - 1][0] != -999999999):
+                        if not use_best_parmas:
                             for e in range(p_range[count-1]*2):
-                                params_cold[e] = coldAllParams[j][e]
+                                params_cold[e] = cold_all_params[j][e]
                         else:
                             for e in range(p_range[count-1]*2):
-                                params_cold[e] = bestParamsForPcold[count-1][1][e]
-                    if onlyOptimizeCurrentP == True:
+                                params_cold[e] = best_params_for_pcold[count-1][1][e]
+                    if only_optimize_current_p == True:
                         params_cold_optimized = MinimizeWrapper().minimize(objectiveFunction, params_cold[p_range[count-1]*2:] if p > 1 else params_cold, method="Cobyla",
-                                                         args=(graph, None, p, list(params_cold[:p_range[count-1]*2]) if p > 1 else None), options=optimizer_options)
+                                                         args=(None,graph, None, p, list(params_cold[:p_range[count-1]*2]) if p > 1 else None), options=optimizer_options)
                         if p > 1:
                             params_cold_optimized.bestValue[0] = list(params_cold[:p_range[count-1]*2]) + list(params_cold_optimized.bestValue[0])
                     else:
-                        params_cold_optimized = MinimizeWrapper().minimize(objectiveFunction, params_cold, method="COBYLA", args=(graph, None, p),
+                        params_cold_optimized = MinimizeWrapper().minimize(objectiveFunction, params_cold, method="COBYLA", args=(None,graph, None, p),
                                                                  options=optimizer_options)
-                    energyCold, cutCold, maxCutChanceCold, betterCutChanceCold = objectiveFunctionBest(params_cold_optimized.bestValue[0], graph, None, p,
-                                                                                  knownMaxCut= knownMaxCut,
-                                                                                  showHistogram=False)
-                    if bestParamsForPcold[count][0] < energyCold:
-                        bestParamsForPcold[count][0] = energyCold
-                        bestParamsForPcold[count][1] = list(params_cold_optimized.bestValue[0])
-                    if not useBestParmas:
-                        coldAllParams[j] = list(params_cold_optimized.bestValue[0])
-                    coldstart.append(energyCold)
-                    coldstartMaxCutProb.append(maxCutChanceCold)
-                    coldstartBetterCutProb.append(betterCutChanceCold)
-                    optimizerStepsListCold.append(len(params_cold_optimized.optimizationPath))
-                    runtimeListCold.append(params_cold_optimized.optimizationTime)
-                    print("maxcutchance for coldstart:{} at j={}".format(maxCutChanceCold, j))
-                    raw_all_results.append("{};{},{};{};{};{};{};{};{}".format(p,j, "cold", energyCold, maxCutChanceCold, 0, ','.join(list(str(e) for e in params_cold_optimized.bestValue[0])),optimizerStepsListCold[j], runtimeListCold[j]))
+                    energy_cold, cut_cold, max_cut_chance_cold, better_cut_chance_cold = objectiveFunctionBest(params_cold_optimized.bestValue[0], None, graph, None, p,
+                                                                                                       knownMaxCut= known_max_cut,
+                                                                                                       showHistogram=False)
+                    if best_params_for_pcold[count][0] < energy_cold:
+                        best_params_for_pcold[count][0] = energy_cold
+                        best_params_for_pcold[count][1] = list(params_cold_optimized.bestValue[0])
+                    if not use_best_parmas:
+                        cold_all_params[j] = list(params_cold_optimized.bestValue[0])
+                    coldstart.append(energy_cold)
+                    coldstart_max_cut_prob.append(max_cut_chance_cold)
+                    coldstart_better_cut_prob.append(better_cut_chance_cold)
+                    optimizer_steps_list_cold.append(len(params_cold_optimized.optimizationPath))
+                    runtime_list_cold.append(params_cold_optimized.optimizationTime)
+                    print("maxcutchance for coldstart:{} at j={}".format(max_cut_chance_cold, j))
+                    raw_all_results.append("{};{},{};{};{};{};{};{};{}".format(p,j, "cold", energy_cold, max_cut_chance_cold, 0, ','.join(list(str(e) for e in params_cold_optimized.bestValue[0])),optimizer_steps_list_cold[j], runtime_list_cold[j]))
 
 
+                #################
+                #   Warmstart   #
+                #################
 
-
-
-
-                energyWarmList, cutWarmList, maxCutChanceWarmList, betterCutChanceWarmList, paramsWarmList= [[] for i in range(len(methods))], [[] for i in range(len(methods))], [[] for i in range(len(methods))], [[] for i in range(len(methods))],[[] for i in range(len(methods))]
+                energy_warm_list, cut_warm_list, max_cut_chance_warm_list, better_cut_chance_warm_list, params_warm_list = [[] for i in range(len(methods))], [[] for i in range(len(methods))], [[] for i in range(len(methods))], [[] for i in range(len(methods))],[[] for i in range(len(methods))]
 
                 if type(epsilon) is float or type(epsilon) == int:
                     epsilon = [epsilon] * len(methods)
-                for methodCount, method in enumerate(methods):
-                    bestCut = epsilonFunction(initialCut[0], epsilon=epsilon[methodCount])
+                for method_count, method in enumerate(methods):
+                    # bestCut = epsilonFunction(initialCut[0], epsilon=epsilon[methodCount])
                     params = copy(params_raw)
 
-                    if(p > 1 and doIncremental and bestParamsForP[methodCount][count-1][0] != -999999999):
-                        if not useBestParmas:
+                    if(p > 1 and do_incremental and best_params_for_p[method_count][count - 1][0] != -999999999):
+                        if not use_best_parmas:
                             for e in range(p_range[count-1]*2):
-                                params[e] = warmAllMethodParams[methodCount][j][e]
+                                params[e] = warm_all_method_params[method_count][j][e]
                         else:
                             for e in range(p_range[count-1]*2):
-                                params[e] = bestParamsForP[methodCount][count-1][1][e]
+                                params[e] = best_params_for_p[method_count][count-1][1][e]
+
 
                     #optimize k times with the same startvalues and take the best
                     for k in range(1):
-                        if onlyOptimizeCurrentP == True:
+                        cons = []
+                        cons.append({'type': 'ineq', 'fun': lambda x: x[-1] - 0})
+                        cons.append({'type': 'ineq', 'fun': lambda x: 0.5 - x[-1]})
 
-                            params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, params[p_range[count-1]*2:] if p > 1 else params, method="Cobyla",
-                                                             args=(graph, bestCut, p, list(params[:p_range[count-1]*2]) if p > 1 else None, initialCut[1], method, method_params[methodCount]), options=optimizer_options)
-                            if p > 1:
-                                params_warm_optimized.bestValue[0] = list(params[:p_range[count-1]*2]) + list(params_warm_optimized.bestValue[0])
+                        if optimize_epsilon == True:
+                            if only_optimize_current_p == True:
+                                optimization_params = np.append(params[p_range[count-1]*2:] if p > 1 else params, epsilon[method_count])
+                                params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, optimization_params, method="Cobyla", constraints=cons,
+                                                                                   args=(None, graph, initial_cut[0], p, list(params[:p_range[count - 1] * 2]) if p > 1 else None, initial_cut[1], method, method_params[method_count]), options=optimizer_options)
+                                if p > 1:
+                                    params_warm_optimized.bestValue[0] = list(params[:p_range[count-1]*2]) + list(params_warm_optimized.bestValue[0])
+                            else:
+                                optimization_params = np.append(params, epsilon[method_count])
+                                params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, optimization_params, method="Cobyla",
+                                                                                   args=(None, graph, initial_cut[0], p, None, initial_cut[1], method, method_params[method_count]), options=optimizer_options)
+                            energy_warm, cut_warm, max_cut_chance_warm, better_cut_chance_warm = objectiveFunctionBest(params_warm_optimized.bestValue[0], None, graph, initial_cut[0], p,
+                                                                                                               knownMaxCut= known_max_cut,
+                                                                                                               showHistogram=False, inputCut=initial_cut[1], method=method, method_params=method_params[method_count])
                         else:
-                            params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, params, method="Cobyla",
-                                                             args=(graph, bestCut, p, None, initialCut[1], method, method_params[methodCount]), options=optimizer_options)
+                            if only_optimize_current_p == True:
+                                params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, params[p_range[count-1]*2:] if p > 1 else params, method="Cobyla",
+                                                                                   args=(epsilon[method_count], graph, initial_cut[0], p, list(params[:p_range[count - 1] * 2]) if p > 1 else None, initial_cut[1], method, method_params[method_count]), options=optimizer_options)
+                                if p > 1:
+                                    params_warm_optimized.bestValue[0] = list(params[:p_range[count-1]*2]) + list(params_warm_optimized.bestValue[0])
+                            else:
+                                params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, params, method="Cobyla",
+                                                                                   args=(epsilon[method_count], graph, initial_cut[0], p, None, initial_cut[1], method, method_params[method_count]), options=optimizer_options)
 
-                        energyWarm, cutWarm, maxCutChanceWarm, betterCutChanceWarm = objectiveFunctionBest(params_warm_optimized.bestValue[0], graph, bestCut, p,
-                                                                                      knownMaxCut= knownMaxCut,
-                                                                                      showHistogram=False, inputCut=initialCut[1], method=method, method_params=method_params[methodCount])
-                        if bestParamsForP[methodCount][count][0] < energyWarm:
-                            bestParamsForP[methodCount][count][0] = energyWarm
-                            bestParamsForP[methodCount][count][1] = list(params_warm_optimized.bestValue[0])
-                        if not useBestParmas:
-                            warmAllMethodParams[methodCount][j] = list(params_warm_optimized.bestValue[0])
-                        energyWarmList[methodCount].append(energyWarm)
-                        cutWarmList[methodCount].append(cutWarm)
-                        maxCutChanceWarmList[methodCount].append(maxCutChanceWarm)
-                        betterCutChanceWarmList[methodCount].append(betterCutChanceWarm)
-                        paramsWarmList[methodCount].append(list(params_warm_optimized.bestValue[0]))
-                        optimizerStepsList[methodCount].append(len(params_warm_optimized.optimizationPath))
-                        runtimeList[methodCount].append(params_warm_optimized.optimizationTime)
-                    warmstart[methodCount].append(np.max(energyWarmList[methodCount]))
-                    warmstartMaxCutProb[methodCount].append(np.max(maxCutChanceWarmList[methodCount]))
-                    warmstartBetterCutProb[methodCount].append(np.max(betterCutChanceWarmList[methodCount]))
-                    print("maxcutchance for method {}:{} at j={}".format(method, np.max(maxCutChanceWarmList[methodCount]), j))
-                    raw_all_results.append("{};{};{};{};{};{};{};{}".format(p,j, method, np.max(energyWarmList[methodCount]), np.max(maxCutChanceWarmList[methodCount]), np.max(betterCutChanceWarmList[methodCount]), ','.join(list(str(e) for e in paramsWarmList[methodCount][0])), optimizerStepsList[methodCount][j],runtimeList[methodCount][j]))
+                            energy_warm, cut_warm, max_cut_chance_warm, better_cut_chance_warm = objectiveFunctionBest(params_warm_optimized.bestValue[0], epsilon[method_count], graph, initial_cut[0], p,
+                                                                                                               knownMaxCut= known_max_cut,
+                                                                                                               showHistogram=False, inputCut=initial_cut[1], method=method, method_params=method_params[method_count])
+                        if best_params_for_p[method_count][count][0] < energy_warm:
+                            best_params_for_p[method_count][count][0] = energy_warm
+                            best_params_for_p[method_count][count][1] = list(params_warm_optimized.bestValue[0])
+                        if not use_best_parmas:
+                            warm_all_method_params[method_count][j] = list(params_warm_optimized.bestValue[0])
+                        energy_warm_list[method_count].append(energy_warm)
+                        cut_warm_list[method_count].append(cut_warm)
+                        max_cut_chance_warm_list[method_count].append(max_cut_chance_warm)
+                        better_cut_chance_warm_list[method_count].append(better_cut_chance_warm)
+                        params_warm_list[method_count].append(list(params_warm_optimized.bestValue[0]))
+                        optimizer_steps_list[method_count].append(len(params_warm_optimized.optimizationPath))
+                        runtime_list[method_count].append(params_warm_optimized.optimizationTime)
+                    warmstart[method_count].append(np.max(energy_warm_list[method_count]))
+                    warmstart_max_cut_prob[method_count].append(np.max(max_cut_chance_warm_list[method_count]))
+                    warmstart_better_cut_prob[method_count].append(np.max(better_cut_chance_warm_list[method_count]))
+                    print("maxcutchance for method {}:{} at j={}".format(method, np.max(max_cut_chance_warm_list[method_count]), j))
+                    raw_all_results.append("{};{};{};{};{};{};{};{};{}".format(p,j, method, np.max(energy_warm_list[method_count]), np.max(max_cut_chance_warm_list[method_count]), np.max(better_cut_chance_warm_list[method_count]), ','.join(list(str(e) for e in params_warm_list[method_count][0])), optimizer_steps_list[method_count][j],runtime_list[method_count][j]))
 
 
-            print("{:.2f}%".format(100 * (p/len(p_range))))
+            print("{:.2f}%".format(100 * ((count+1)/len(p_range))))
 
         print("WARMSTARTPROB")
-        print(warmstartMaxCutProb)
+        print(warmstart_max_cut_prob)
         for h, method in enumerate(methods):
-            warm_MaxCutProb[h].append(np.median(warmstartMaxCutProb[h])*100)
-            warm_BetterCutProb[h].append(np.median(warmstartBetterCutProb[h])*100)
+            warm_max_cut_prob[h].append(np.median(warmstart_max_cut_prob[h])*100)
+            warm_better_cut_prob[h].append(np.median(warmstart_better_cut_prob[h])*100)
             # save p, method, energy_median, maxcutchance_median, bettercutchance_median
-            raw_median_results.append("{};{};{};{};{};{};{}".format(p, methods[h], np.median(warmstart[h]), np.median(warmstartMaxCutProb[h]), np.median(warmstartBetterCutProb[h]), np.mean(optimizerStepsList[h]),np.mean(runtimeList[h])))
-        warm_MaxCutProb_Values.append([[p for i in range(len(warmstartMaxCutProb))], np.array(warmstartMaxCutProb)*100])
-        warm_BetterCutProb_Values.append([[p for i in range(len(warmstartBetterCutProb))], np.array(warmstartBetterCutProb)*100])
+            raw_median_results.append("{};{};{};{};{};{};{}".format(p, methods[h], np.median(warmstart[h]), np.median(warmstart_max_cut_prob[h]), np.median(warmstart_better_cut_prob[h]), np.mean(optimizer_steps_list[h]),np.mean(runtime_list[h])))
+        warm_max_cut_prob_values.append([[p for i in range(len(warmstart_max_cut_prob))], np.array(warmstart_max_cut_prob)*100])
+        warm_better_cut_prob_values.append([[p for i in range(len(warmstart_better_cut_prob))], np.array(warmstart_better_cut_prob)*100])
         warm_means.append(np.median(warmstart))
         warm_value_list.append([[p for i in range(len(warmstart))], warmstart])
-        if doCold:
-            cold_MaxCutProb.append(np.median(coldstartMaxCutProb)*100)
-            cold_BetterCutProb.append(np.median(coldstartBetterCutProb)*100)
+        if do_cold:
+            cold_max_cut_prob.append(np.median(coldstart_max_cut_prob)*100)
+            cold_better_cut_prob.append(np.median(coldstart_better_cut_prob)*100)
             # save p, method, energy_median, maxcutchance_median, bettercutchance_median
-            raw_median_results.append("{};{};{};{};{};{};{}".format(p, "cold", np.median(coldstart), np.median(coldstartMaxCutProb), np.median(coldstartBetterCutProb), np.mean(optimizerStepsListCold), np.mean(runtimeListCold)))
+            raw_median_results.append("{};{};{};{};{};{};{}".format(p, "cold", np.median(coldstart), np.median(coldstart_max_cut_prob), np.median(coldstart_better_cut_prob), np.mean(optimizer_steps_list_cold), np.mean(runtime_list_cold)))
             # cold_MaxCutProb_Values.append(coldstartMaxCutProb)
-            for prob in coldstartMaxCutProb:
-                cold_MaxCutProb_Values.append([p, prob*100])
-            for prob in coldstartBetterCutProb:
-                cold_BetterCutProb_Values.append([p, prob*100])
+            for prob in coldstart_max_cut_prob:
+                cold_max_cut_prob_values.append([p, prob*100])
+            for prob in coldstart_better_cut_prob:
+                cold_better_cut_prob_values.append([p, prob*100])
             cold_means.append(np.median(coldstart))
         print(warmstart)
-        print(bestParamsForP)
+        print(best_params_for_p)
 
     print([warm_means])
-    print([warm_MaxCutProb])
-    # print([warm_max, cold_max])
+    print([warm_max_cut_prob])
 
 
-    #energygraph
-    # warm_value_list = np.array(warm_value_list)
-
-
-    # plt.scatter(warm_value_list[:,0], warm_value_list[:,1], marker=".", color='red', label="warmstarted", alpha=.4)
-    # plt.scatter(p_range, warm_means, linestyle="None", marker="x", color="r", label="median cut", alpha=.75)
-    # offset = totalCost(graph)
-    # if(initialCut):
-    #     usedCut = initialCut[1]
-    # plt.plot([np.min(p_range), np.max(p_range)], [usedCut -offset, usedCut-offset], linestyle="dashed",
-    #          label="used GW-Cut")
-    # plt.plot([np.min(p_range), np.max(p_range)], [knownMaxCut-offset, knownMaxCut-offset], linestyle="dashed",
-    #          label="best GW-Cut")
-    # plt.legend(loc="best"), plt.xlabel("p"), plt.ylabel("Energy"), plt.title("Warm-started QAOA comparison")
-    # plt.savefig("results/warmstartEnergy-"+datetime.now().strftime("%Y-%m-%d_%H-%M")+".png", format="png")
-    # plt.show()
-    # plt.close()
-
+    #################
+    #    Logging    #
+    #################
     time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    add_to_name = "_" + time +"_{}_{}".format(graph.shape[0], initialCut[1])
+    add_to_name = "_" + time +"_{}_{}".format(graph.shape[0], initial_cut[1])
     path = os.getcwd() + "/results/" +  add_to_name
-    print ("The current working directory is %s" % path)
+    print("The current working directory is %s" % path)
     try:
         os.mkdir(path)
     except OSError:
@@ -208,35 +211,37 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownM
         print ("Successfully created the directory %s " % path)
 
 
-    rawResultsFile = open(path + "/rawAll"+add_to_name+".log", "w")
-    rawResultsFile.write("\n".join(raw_all_results))
-    rawResultsFile.close()
+    raw_results_file = open(path + "/rawAll"+add_to_name+".log", "w")
+    raw_results_file.write("\n".join(raw_all_results))
+    raw_results_file.close()
 
 
-    rawResultsFile = open(path + "/rawMedian"+add_to_name+".log", "w")
-    rawResultsFile.write("\n".join(raw_median_results))
-    rawResultsFile.close()
+    raw_results_file = open(path + "/rawMedian"+add_to_name+".log", "w")
+    raw_results_file.write("\n".join(raw_median_results))
+    raw_results_file.close()
 
-    methodValues = [[] for methodCount in range(len(methods))]
+
+    #################
+    # Graphplotting #
+    #################
+    method_values = [[] for method_count in range(len(methods))]
     #probabilitygraph
-    print(warm_MaxCutProb_Values)
+    print(warm_max_cut_prob_values)
     for p in range(len(p_range)):
-        for methodCount in range(len(methods)):
-            # [methodValues[methodCount][0].append(p) for i in range(len(warm_MaxCutProb_Values[p][1][methodCount]))]
-            # [methodValues[methodCount][1].append(e) for e in warm_MaxCutProb_Values[p][1][methodCount]]
-            [methodValues[methodCount].append([p_range[p],e]) for i,e in enumerate(warm_MaxCutProb_Values[p][1][methodCount])]
+        for method_count in range(len(methods)):
+            [method_values[method_count].append([p_range[p],e]) for i,e in enumerate(warm_max_cut_prob_values[p][1][method_count])]
 
 
-    methodValues = np.array(methodValues)
+    method_values = np.array(method_values)
     colors = cm.get_cmap("rainbow", len(methods))
 
-    if doCold == True:
-        cold_MaxCutProb_Values = np.array(cold_MaxCutProb_Values)
-        plt.scatter(cold_MaxCutProb_Values[:,0], cold_MaxCutProb_Values[:,1], marker=".", color='blue', label="Coldstarted", alpha=.4)
-        plt.scatter(p_range, cold_MaxCutProb, linestyle="None", marker="x", color="b", alpha=.75)
-    for methodCount, method in enumerate(methods):
-        plt.scatter(methodValues[methodCount][:,0], methodValues[methodCount][:,1], marker=".", color = colors(methodCount), label=labels[methodCount] if labels else method, alpha=.4)
-        plt.scatter(p_range, warm_MaxCutProb[methodCount], linestyle="None", marker="x",color = colors(methodCount), alpha=.8)
+    if do_cold == True:
+        cold_max_cut_prob_values = np.array(cold_max_cut_prob_values)
+        plt.scatter(cold_max_cut_prob_values[:,0], cold_max_cut_prob_values[:, 1], marker=".", color='blue', label="Coldstarted", alpha=.4)
+        plt.scatter(p_range, cold_max_cut_prob, linestyle="None", marker="x", color="b", alpha=.75)
+    for method_count, method in enumerate(methods):
+        plt.scatter(method_values[method_count][:,0], method_values[method_count][:, 1], marker=".", color = colors(method_count), label=labels[method_count] if labels else method, alpha=.4)
+        plt.scatter(p_range, warm_max_cut_prob[method_count], linestyle="None", marker="x",color = colors(method_count), alpha=.8)
     plt.legend(loc="best"), plt.xlabel("p"), plt.ylabel("MaxCut Probability in %"), plt.title("MaxCut Probability")
     # plt.tick_params(axis='both', which='major', labelsize=16)
 
@@ -246,25 +251,25 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownM
     plt.show()
     plt.close()
 
-    methodValues = [[] for methodCount in range(len(methods))]
+    method_values = [[] for method_count in range(len(methods))]
     #probabilitygraph
-    print(warm_BetterCutProb_Values)
+    print(warm_better_cut_prob_values)
     for p in range(len(p_range)):
-        for methodCount in range(len(methods)):
-            [methodValues[methodCount].append([p_range[p],e]) for i,e in enumerate(warm_BetterCutProb_Values[p][1][methodCount])]
+        for method_count in range(len(methods)):
+            [method_values[method_count].append([p_range[p],e]) for i,e in enumerate(warm_better_cut_prob_values[p][1][method_count])]
 
 
-    methodValues = np.array(methodValues)
+    method_values = np.array(method_values)
     colors = cm.get_cmap("rainbow", len(methods))
 
-    if doCold == True:
-        cold_BetterCutProb_Values = np.array(cold_BetterCutProb_Values)
-        plt.scatter(cold_BetterCutProb_Values[:,0], cold_BetterCutProb_Values[:,1], marker=".", color='blue', label="Coldstarted", alpha=.4)
-        plt.scatter(p_range, cold_BetterCutProb, linestyle="None", marker="x", color="b", alpha=.75)
+    if do_cold == True:
+        cold_better_cut_prob_values = np.array(cold_better_cut_prob_values)
+        plt.scatter(cold_better_cut_prob_values[:, 0], cold_better_cut_prob_values[:,1], marker=".", color='blue', label="Coldstarted", alpha=.4)
+        plt.scatter(p_range, cold_better_cut_prob, linestyle="None", marker="x", color="b", alpha=.75)
 
-    for methodCount, method in enumerate(methods):
-        plt.scatter(methodValues[methodCount][:,0], methodValues[methodCount][:,1], marker=".", color = colors(methodCount), label=labels[methodCount] if labels else method, alpha=.4)
-        plt.scatter(p_range, warm_BetterCutProb[methodCount], linestyle="None", marker="x",color = colors(methodCount), alpha=.8)
+    for method_count, method in enumerate(methods):
+        plt.scatter(method_values[method_count][:, 0], method_values[method_count][:,1], marker=".", color = colors(method_count), label=labels[method_count] if labels else method, alpha=.4)
+        plt.scatter(p_range, warm_better_cut_prob[method_count], linestyle="None", marker="x",color = colors(method_count), alpha=.8)
     plt.legend(loc="best"), plt.xlabel("p"), plt.ylabel("BetterCut Probability in %"), plt.title("BetterCut Probability")
     # plt.tick_params(axis='both', which='major', labelsize=16)
 
@@ -298,11 +303,11 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initialCut, knownM
 # graph_loaded = GraphStorage.load("graphs/minimal-3v-3e-graph.txt")
 # cuts_loaded = GraphStorage.loadGWcuts("graphs/minimal-3v-3e-cuts.txt")
 
-# graph_loaded = GraphStorage.load("graphs/fullyConnected-6-paperversion-graph.txt")
-# cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-6-paperversion-cuts.txt")
+graph_loaded = GraphStorage.load("graphs/fullyConnected-6-paperversion-graph.txt")
+cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-6-paperversion-cuts.txt")
 
-graph_loaded = GraphStorage.load("graphs/prototype/fc-12-graph.txt")
-cuts_loaded = GraphStorage.loadGWcuts("graphs/prototype/fc-12-cuts.txt")
+# graph_loaded = GraphStorage.load("graphs/prototype/fc-12-graph.txt")
+# cuts_loaded = GraphStorage.loadGWcuts("graphs/prototype/fc-12-cuts.txt")
 
 # graph_loaded = GraphStorage.load("graphs/prototype/3r-12-graph.txt")
 # cuts_loaded = GraphStorage.loadGWcuts("graphs/prototype/3r-12-cuts.txt")
@@ -316,30 +321,33 @@ cuts_loaded = GraphStorage.loadGWcuts("graphs/prototype/fc-12-cuts.txt")
 print(cuts_loaded)
 
 # Pick eta close to e^650/maxcut which results in e^eta*cut close to the maximum possible float
-initial_cut = cuts_loaded[12]
+initial_cut = cuts_loaded[2]
 eta= 650/(initial_cut[1]*1.2)
 print(eta)
 
-method_params = [None, None]
-methods= [ None, "greedy"]
-labels = [ r"$F_{EE}$", r"$F_{Greedy}$"]
-epsilon = [0.15, 0.025]
+# method_params = [None, None]
+# methods= [ None, "greedy"]
+# labels = [ r"$F_{EE}$", r"$F_{Greedy}$"]
+# epsilon = [0.15, 0.025]
+# epsilon = [0.15, 0.15]
 # method_params = [None]
 # methods= [None]
 # labels = [ r"$F_{EE}$"]
 # method_params = [ None, None]
-# methods= [ None, "CVaR", "Gibbs", "Greedy", "ee-i"]
-# method_params = [ None, (0.05,), (5,), None, None]
-# labels = [ r"$F_{EE}$", r"$F_{0.05,CVar}$", r"$F_{5,Gibbs}$", r"$F_{Greedy}$", r"$F_{EE-I}$"]
-knownMaxCut = np.array(cuts_loaded[-1][1])
-doCold = True
-doIncremental = True
-onlyOptimizeCurrentP = True
-useBestParams = False  #requires doIncremental = True
-j = 20
-p = [1,2,3]
+methods = [None, "CVaR", "Gibbs", "Greedy", "ee-i"]
+method_params = [None, (0.05,), (5,), None, None]
+labels = [r"$F_{EE}$", r"$F_{0.05,CVar}$", r"$F_{5,Gibbs}$", r"$F_{Greedy}$", r"$F_{EE-I}$"]
+epsilon = 0.0
+known_max_cut = np.array(cuts_loaded[-1][1])
+do_cold = True
+do_incremental = True
+only_optimize_current_p = True
+use_best_params = False  #requires doIncremental = True
+optimize_epsilon = True
+j = 2
+p = [1, 2]
 
-compareWarmStartEnergyMethods(j, graph_loaded, p,  initialCut = initial_cut, knownMaxCut = knownMaxCut, epsilon=epsilon, methods=methods, method_params=method_params, doCold=doCold, doIncremental=doIncremental, onlyOptimizeCurrentP=onlyOptimizeCurrentP, labels=labels, useBestParmas=useBestParams)
+compareWarmStartEnergyMethods(j, graph_loaded, p, initial_cut= initial_cut, known_max_cut= known_max_cut, epsilon=epsilon, methods=methods, method_params=method_params, do_cold=do_cold, do_incremental=do_incremental, only_optimize_current_p=only_optimize_current_p, labels=labels, use_best_parmas=use_best_params, optimize_epsilon=optimize_epsilon)
 
 
 

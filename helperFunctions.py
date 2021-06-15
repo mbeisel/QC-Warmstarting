@@ -1,11 +1,16 @@
+from copy import deepcopy
+
 def epsilonFunction(cutList, epsilon=0.25):
+    cut = deepcopy(cutList)
+    epsilon = 0 if epsilon < 0 else epsilon
+    epsilon = 0.5 if epsilon > 0.5 else epsilon
     # increase distance of continuous values from exact 0 and 1
-    for i in range(len(cutList)):
-        if (cutList[i] > 1 - epsilon):
-            cutList[i] = 1 - epsilon
-        if (cutList[i] < epsilon):
-            cutList[i] = epsilon
-    return cutList
+    for i in range(len(cut)):
+        if (cut[i] > 1 - epsilon):
+            cut[i] = 1 - epsilon
+        if (cut[i] < epsilon):
+            cut[i] = epsilon
+    return cut
 
 def takeFirst(elem):
     return elem[0]
@@ -24,5 +29,3 @@ def hammingDistance(s1, s2, allowInverse = False):
     if allowInverse and distance > len(s1)/2:
         return len(s1) - distance
     return distance
-
-

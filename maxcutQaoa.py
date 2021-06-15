@@ -164,7 +164,15 @@ def plotCircuit(G, approximation_List, params, p, backend=None):
         plt.show()
 
 
-def objectiveFunction(input, Graph, approximation_List, p, mixedOptimizerVars = None, inputCut = None, method = None,method_params =None, showHistogram=False, maxCut=None):
+def objectiveFunction(input, fixedEpsilon, Graph, approximation_List, p, mixedOptimizerVars = None, inputCut = None, method = None,method_params =None, showHistogram=False, maxCut=None):
+    if fixedEpsilon is not None:
+        epsilon = fixedEpsilon
+    elif approximation_List is not None:
+        *input, epsilon = input
+        if epsilon is None:
+            epsilon = np.random.default_rng().uniform(0, 0.5)
+    if approximation_List is not None:
+        approximation_List = epsilonFunction(approximation_List, epsilon=epsilon)
     if mixedOptimizerVars:
         input = mixedOptimizerVars + (list(input))
     results = runQaoa(input, Graph, approximation_List, p)
@@ -174,7 +182,15 @@ def objectiveFunction(input, Graph, approximation_List, p, mixedOptimizerVars = 
     return -costs
 
 
-def objectiveFunctionBest(input, Graph, approximation_List, p, knownMaxCut = None, inputCut = None, method = None,method_params =None, showHistogram=False):
+def objectiveFunctionBest(input, fixedEpsilon, Graph, approximation_List, p, knownMaxCut = None, inputCut = None, method = None,method_params =None, showHistogram=False):
+    if fixedEpsilon is not None:
+        epsilon = fixedEpsilon
+    elif approximation_List is not None:
+        *input, epsilon = input
+        # if epsilon is None:
+        #     epsilon = np.random.default_rng().uniform(0, 0.5)
+    if approximation_List is not None:
+        approximation_List = epsilonFunction(approximation_List, epsilon=epsilon)
     results = runQaoa(input, Graph, approximation_List, p)
     energy, _, bestCut, maxCutChance, betterCutChance = compute_costs(results, Graph, knownMaxCut=knownMaxCut, method=method, method_params=method_params, showHistogram=showHistogram, inputCut=inputCut)
     return energy, bestCut, maxCutChance, betterCutChance
