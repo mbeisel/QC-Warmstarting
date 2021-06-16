@@ -8,15 +8,20 @@ from helperFunctions import *
 from QAOACircuitGenerator import QAOACircuitGenerator
 from graphGenerator import GraphPlotter
 
+
+cut_costs = {}
+
 # Compute the value of the cost function
 def cost_function_C(x, G):
     n_vertices = G.shape[0]
-
+    cut_string = ''.join(str(x))
+    if cut_string in cut_costs.keys():
+        return cut_costs.get(cut_string)
     C = 0
     for i in range(n_vertices):
         for j in range(i):
             C += G[i,j] * (not x[i] == x[j])
-
+    cut_costs[cut_string] = C
     return C
 
 def totalCost(G):
@@ -42,6 +47,7 @@ def runQaoa(input, Graph, approximation_List, p):
 def compute_costs(QAOA_results, G,inputCut = None, knownMaxCut = None, method = None, method_params =None, showHistogram=False):
     # Evaluate the data from the simulator
     counts = QAOA_results.get_counts()
+    print(len(counts))
     max_Cut_Probability = 0
 
     allCosts = np.array([cost_function_C(parseSolution(x), G) for x in list(counts.keys())])
