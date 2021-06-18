@@ -5,8 +5,7 @@ from matplotlib import cm
 from graphGenerator import GraphGenerator
 from graphStorage import GraphStorage
 from copy import copy
-from maxcutQaoa import objectiveFunction, objectiveFunctionBest
-from helperFunctions import hammingDistance
+from maxcutQaoa import objectiveFunction, objectiveFunctionBest, cut_costs
 import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
@@ -17,6 +16,9 @@ from pathlib import Path
 
 
 def compareWarmStartEnergyMethods(iterations, graph, p_range, initial_cut, known_max_cut = None, only_optimize_current_p = False, epsilon =0.25, do_cold = False, methods = None, do_incremental=True, method_params = None, labels = None, use_best_parmas = False, optimize_epsilon=False, optimizer='Cobyla', foldername=None, hamming_distance =None):
+    #clear cutcost list from maxcutQaoa
+    cut_costs.clear()
+
     if(initial_cut):
         print("Use: {} with epsilon: {}".format(initial_cut, epsilon))
     warm_means = []
