@@ -13,7 +13,7 @@ from MinimizeWrapper import MinimizeWrapper
 
 
 
-def compareWarmStartEnergyMethods(iterations, graph, p_range, initial_cut, known_max_cut = None, only_optimize_current_p = False, epsilon =0.25, do_cold = False, methods = None, do_incremental=True, method_params = None, labels = None, use_best_parmas = False, optimize_epsilon=False):
+def compareWarmStartEnergyMethods(iterations, graph, p_range, initial_cut, known_max_cut = None, only_optimize_current_p = False, epsilon =0.25, do_cold = False, methods = None, do_incremental=True, method_params = None, labels = None, use_best_parmas = False, optimize_epsilon=False, optimizer='Cobyla', foldername=None):
     if(initial_cut):
         print("Use: {} with epsilon: {}".format(initial_cut, epsilon))
     warm_means = []
@@ -68,12 +68,12 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initial_cut, known
                             for e in range(p_range[count-1]*2):
                                 params_cold[e] = best_params_for_pcold[count-1][1][e]
                     if only_optimize_current_p == True:
-                        params_cold_optimized = MinimizeWrapper().minimize(objectiveFunction, params_cold[p_range[count-1]*2:] if p > 1 else params_cold, method="Cobyla",
+                        params_cold_optimized = MinimizeWrapper().minimize(objectiveFunction, params_cold[p_range[count-1]*2:] if p > 1 else params_cold, method=optimizer,
                                                          args=(None,graph, None, p, list(params_cold[:p_range[count-1]*2]) if p > 1 else None), options=optimizer_options)
                         if p > 1:
                             params_cold_optimized.bestValue[0] = list(params_cold[:p_range[count-1]*2]) + list(params_cold_optimized.bestValue[0])
                     else:
-                        params_cold_optimized = MinimizeWrapper().minimize(objectiveFunction, params_cold, method="COBYLA", args=(None,graph, None, p),
+                        params_cold_optimized = MinimizeWrapper().minimize(objectiveFunction, params_cold, method=optimizer, args=(None,graph, None, p),
                                                                  options=optimizer_options)
                     energy_cold, cut_cold, max_cut_chance_cold, better_cut_chance_cold = objectiveFunctionBest(params_cold_optimized.bestValue[0], None, graph, None, p,
                                                                                                        knownMaxCut= known_max_cut,
@@ -122,25 +122,25 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initial_cut, known
                         if optimize_epsilon == True:
                             if only_optimize_current_p == True:
                                 optimization_params = np.append(params[p_range[count-1]*2:] if p > 1 else params, epsilon[method_count])
-                                params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, optimization_params, method="Cobyla", constraints=cons,
+                                params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, optimization_params, method=optimizer, constraints=cons,
                                                                                    args=(None, graph, initial_cut[0], p, list(params[:p_range[count - 1] * 2]) if p > 1 else None, initial_cut[1], method, method_params[method_count]), options=optimizer_options)
                                 if p > 1:
                                     params_warm_optimized.bestValue[0] = list(params[:p_range[count-1]*2]) + list(params_warm_optimized.bestValue[0])
                             else:
                                 optimization_params = np.append(params, epsilon[method_count])
-                                params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, optimization_params, method="Cobyla",
+                                params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, optimization_params, method=optimizer,
                                                                                    args=(None, graph, initial_cut[0], p, None, initial_cut[1], method, method_params[method_count]), options=optimizer_options)
                             energy_warm, cut_warm, max_cut_chance_warm, better_cut_chance_warm = objectiveFunctionBest(params_warm_optimized.bestValue[0], None, graph, initial_cut[0], p,
                                                                                                                knownMaxCut= known_max_cut,
                                                                                                                showHistogram=False, inputCut=initial_cut[1], method=method, method_params=method_params[method_count])
                         else:
                             if only_optimize_current_p == True:
-                                params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, params[p_range[count-1]*2:] if p > 1 else params, method="Cobyla",
+                                params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, params[p_range[count-1]*2:] if p > 1 else params, method=optimizer,
                                                                                    args=(epsilon[method_count], graph, initial_cut[0], p, list(params[:p_range[count - 1] * 2]) if p > 1 else None, initial_cut[1], method, method_params[method_count]), options=optimizer_options)
                                 if p > 1:
                                     params_warm_optimized.bestValue[0] = list(params[:p_range[count-1]*2]) + list(params_warm_optimized.bestValue[0])
                             else:
-                                params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, params, method="Cobyla",
+                                params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, params, method=optimizer,
                                                                                    args=(epsilon[method_count], graph, initial_cut[0], p, None, initial_cut[1], method, method_params[method_count]), options=optimizer_options)
 
                             energy_warm, cut_warm, max_cut_chance_warm, better_cut_chance_warm = objectiveFunctionBest(params_warm_optimized.bestValue[0], epsilon[method_count], graph, initial_cut[0], p,
@@ -201,7 +201,8 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initial_cut, known
     #################
     time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     add_to_name = "_" + time +"_{}_{}".format(graph.shape[0], initial_cut[1])
-    path = os.getcwd() + "/results/" +  add_to_name
+    path = os.getcwd() + "/results/" + foldername if foldername else os.getcwd() + "/results/" + add_to_name
+
     print("The current working directory is %s" % path)
     try:
         os.mkdir(path)
@@ -303,11 +304,11 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initial_cut, known
 # graph_loaded = GraphStorage.load("graphs/minimal-3v-3e-graph.txt")
 # cuts_loaded = GraphStorage.loadGWcuts("graphs/minimal-3v-3e-cuts.txt")
 
-graph_loaded = GraphStorage.load("graphs/fullyConnected-6-paperversion-graph.txt")
-cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-6-paperversion-cuts.txt")
+# graph_loaded = GraphStorage.load("graphs/fullyConnected-6-paperversion-graph.txt")
+# cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-6-paperversion-cuts.txt")
 
-# graph_loaded = GraphStorage.load("graphs/prototype/fc-12-graph.txt")
-# cuts_loaded = GraphStorage.loadGWcuts("graphs/prototype/fc-12-cuts.txt")
+graph_loaded = GraphStorage.load("graphs/prototype/fc-12-graph.txt")
+cuts_loaded = GraphStorage.loadGWcuts("graphs/prototype/fc-12-cuts.txt")
 
 # graph_loaded = GraphStorage.load("graphs/prototype/3r-12-graph.txt")
 # cuts_loaded = GraphStorage.loadGWcuts("graphs/prototype/3r-12-cuts.txt")
@@ -321,7 +322,7 @@ cuts_loaded = GraphStorage.loadGWcuts("graphs/fullyConnected-6-paperversion-cuts
 print(cuts_loaded)
 
 # Pick eta close to e^650/maxcut which results in e^eta*cut close to the maximum possible float
-initial_cut = cuts_loaded[2]
+initial_cut = cuts_loaded[12]
 eta= 650/(initial_cut[1]*1.2)
 print(eta)
 
@@ -337,17 +338,18 @@ print(eta)
 methods = [None, "CVaR", "Gibbs", "Greedy", "ee-i"]
 method_params = [None, (0.05,), (5,), None, None]
 labels = [r"$F_{EE}$", r"$F_{0.05,CVar}$", r"$F_{5,Gibbs}$", r"$F_{Greedy}$", r"$F_{EE-I}$"]
-epsilon = 0.0
+epsilon = 0.15
 known_max_cut = np.array(cuts_loaded[-1][1])
 do_cold = True
 do_incremental = True
 only_optimize_current_p = True
 use_best_params = False  #requires doIncremental = True
-optimize_epsilon = True
-j = 2
-p = [1, 2]
+optimize_epsilon = False
+j = 10
+p = [1,2,3]
+optimizer = 'Cobyla'
 
-compareWarmStartEnergyMethods(j, graph_loaded, p, initial_cut= initial_cut, known_max_cut= known_max_cut, epsilon=epsilon, methods=methods, method_params=method_params, do_cold=do_cold, do_incremental=do_incremental, only_optimize_current_p=only_optimize_current_p, labels=labels, use_best_parmas=use_best_params, optimize_epsilon=optimize_epsilon)
+compareWarmStartEnergyMethods(j, graph_loaded, p, initial_cut= initial_cut, known_max_cut= known_max_cut, epsilon=epsilon, methods=methods, method_params=method_params, do_cold=do_cold, do_incremental=do_incremental, only_optimize_current_p=only_optimize_current_p, labels=labels, use_best_parmas=use_best_params, optimize_epsilon=optimize_epsilon, optimizer=optimizer)
 
 
 

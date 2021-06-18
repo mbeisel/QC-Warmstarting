@@ -47,7 +47,6 @@ def runQaoa(input, Graph, approximation_List, p):
 def compute_costs(QAOA_results, G,inputCut = None, knownMaxCut = None, method = None, method_params =None, showHistogram=False):
     # Evaluate the data from the simulator
     counts = QAOA_results.get_counts()
-    print(len(counts))
     max_Cut_Probability = 0
 
     allCosts = np.array([cost_function_C(parseSolution(x), G) for x in list(counts.keys())])
