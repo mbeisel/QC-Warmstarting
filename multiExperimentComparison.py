@@ -62,8 +62,8 @@ def comparisonForMultipleGraphs(graphs, folder_add_to_name ='Not-specified', opt
         hamming_distance = graph[4]
         compareWarmStartEnergyMethods(j, graph_loaded, p, initial_cut= initial_cut, known_max_cut= known_max_cut, epsilon=epsilon, methods=methods, method_params=method_params, do_cold=do_cold, do_incremental=do_incremental, only_optimize_current_p=only_optimize_current_p, labels=labels, use_best_parmas=use_best_params, optimize_epsilon=optimize_epsilon, optimizer=optimizer, foldername=folder_name_final, hamming_distance = hamming_distance)
 
-        if i >= 10:
-            break
+        # if i >= 10:
+            # break
 
 
 # incrementive Comparison
