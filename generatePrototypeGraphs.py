@@ -70,7 +70,7 @@ for i in range(20):
                         f"{path}/{var}-{str(nodes)}-cuts-{i}.txt",
                         j,
                         ratio,
-                        hammingDistance(cuts[j][0], cuts[-1][0])
+                        hammingDistance(cuts[j][0], cuts[-1][0], True)
                         ])
                     # print(f"{cuts[j]} ratio: {ratio}")
                     if ratio < 0.7:
