@@ -6,14 +6,17 @@ from graphGenerator import GraphGenerator
 from graphStorage import GraphStorage
 from copy import copy
 from maxcutQaoa import objectiveFunction, objectiveFunctionBest
+from helperFunctions import hammingDistance
 import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
 from MinimizeWrapper import MinimizeWrapper
+from pathlib import Path
 
 
 
-def compareWarmStartEnergyMethods(iterations, graph, p_range, initial_cut, known_max_cut = None, only_optimize_current_p = False, epsilon =0.25, do_cold = False, methods = None, do_incremental=True, method_params = None, labels = None, use_best_parmas = False, optimize_epsilon=False, optimizer='Cobyla', foldername=None):
+
+def compareWarmStartEnergyMethods(iterations, graph, p_range, initial_cut, known_max_cut = None, only_optimize_current_p = False, epsilon =0.25, do_cold = False, methods = None, do_incremental=True, method_params = None, labels = None, use_best_parmas = False, optimize_epsilon=False, optimizer='Cobyla', foldername=None, hamming_distance =None):
     if(initial_cut):
         print("Use: {} with epsilon: {}".format(initial_cut, epsilon))
     warm_means = []
@@ -29,8 +32,8 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initial_cut, known
     cold_better_cut_prob_values = []
     best_params_for_pcold = [[-999999999,None] for i in range(len(p_range))]
     optimizer_options = None
-    raw_median_results = ["doincremental:{}; onlyOptimizeCurrentP:{}; useBestParams:{}; epsilon:{}; initialCut:{}".format(do_incremental, only_optimize_current_p, use_best_params, epsilon, initial_cut)]
-    raw_all_results = ["doincremental:{}; onlyOptimizeCurrentP:{}; useBestParams:{}; epsilon:{}; initialCut:{}".format(do_incremental, only_optimize_current_p, use_best_params, epsilon, initial_cut)]
+    raw_median_results = ["doincremental:{}; onlyOptimizeCurrentP:{}; useBestParams:{}; epsilon:{}; initialCut:{}; Hamming_distance:{}; optimizer: {}".format(do_incremental, only_optimize_current_p, use_best_params, epsilon, initial_cut, hamming_distance or -1, optimizer)]
+    raw_all_results = ["doincremental:{}; onlyOptimizeCurrentP:{}; useBestParams:{}; epsilon:{}; initialCut:{}; Hamming_distance: {}; optimizer: {}".format(do_incremental, only_optimize_current_p, use_best_params, epsilon, initial_cut, hamming_distance or -1, optimizer)]
     warm_all_method_params = [[[] for i in range(iterations)] for i in range(len(methods))]
     cold_all_params = [[] for i in range(iterations)]
 
@@ -203,6 +206,7 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initial_cut, known
     add_to_name = "_" + time +"_{}_{}".format(graph.shape[0], initial_cut[1])
     path = os.getcwd() + "/results/" + foldername if foldername else os.getcwd() + "/results/" + add_to_name
 
+
     print("The current working directory is %s" % path)
     try:
         os.mkdir(path)
@@ -249,7 +253,7 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initial_cut, known
     plt.xticks(p_range)
 
     plt.savefig(path + "/compareMaxCutProbabilityMethods-"+add_to_name+".png", format="png")
-    plt.show()
+    # plt.show()
     plt.close()
 
     method_values = [[] for method_count in range(len(methods))]
@@ -277,7 +281,7 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initial_cut, known
     plt.xticks(p_range)
 
     plt.savefig(path + "/compareBetterCutProbabilityMethods-"+add_to_name+".png", format="png")
-    plt.show()
+    # plt.show()
     plt.close()
 
 
@@ -319,12 +323,12 @@ cuts_loaded = GraphStorage.loadGWcuts("graphs/prototype/fc-12-cuts.txt")
 
 # graph_loaded = GraphGenerator.genDiamondGraph()
 
-print(cuts_loaded)
+# print(cuts_loaded)
 
 # Pick eta close to e^650/maxcut which results in e^eta*cut close to the maximum possible float
 initial_cut = cuts_loaded[12]
 eta= 650/(initial_cut[1]*1.2)
-print(eta)
+# print(eta)
 
 # method_params = [None, None]
 # methods= [ None, "greedy"]
@@ -348,8 +352,9 @@ optimize_epsilon = False
 j = 10
 p = [1,2,3]
 optimizer = 'Cobyla'
+hamming_distance = None
 
-compareWarmStartEnergyMethods(j, graph_loaded, p, initial_cut= initial_cut, known_max_cut= known_max_cut, epsilon=epsilon, methods=methods, method_params=method_params, do_cold=do_cold, do_incremental=do_incremental, only_optimize_current_p=only_optimize_current_p, labels=labels, use_best_parmas=use_best_params, optimize_epsilon=optimize_epsilon, optimizer=optimizer)
+# compareWarmStartEnergyMethods(j, graph_loaded, p, initial_cut= initial_cut, known_max_cut= known_max_cut, epsilon=epsilon, methods=methods, method_params=method_params, do_cold=do_cold, do_incremental=do_incremental, only_optimize_current_p=only_optimize_current_p, labels=labels, use_best_parmas=use_best_params, optimize_epsilon=optimize_epsilon, optimizer=optimizer, hamming_distance=hamming_distance)
 
 
 
