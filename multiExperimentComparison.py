@@ -30,6 +30,8 @@ def comparisonForMultipleGraphs(graphs, folder_add_to_name ='Not-specified', opt
     time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     foldername = time + 'multicomparison-' + folder_add_to_name
     path = os.getcwd() + "/results/" + foldername
+    results = []
+    all_results = []
     try:
         os.mkdir(path)
     except OSError:
@@ -60,11 +62,22 @@ def comparisonForMultipleGraphs(graphs, folder_add_to_name ='Not-specified', opt
         optimizer = optimizer
         folder_name_final = foldername + '/' + str(i)
         hamming_distance = graph[4]
-        compareWarmStartEnergyMethods(j, graph_loaded, p, initial_cut= initial_cut, known_max_cut= known_max_cut, epsilon=epsilon, methods=methods, method_params=method_params, do_cold=do_cold, do_incremental=do_incremental, only_optimize_current_p=only_optimize_current_p, labels=labels, use_best_parmas=use_best_params, optimize_epsilon=optimize_epsilon, optimizer=optimizer, foldername=folder_name_final, hamming_distance = hamming_distance)
 
-        # if i >= 10:
-            # break
+        medianResults, rawAllResults = compareWarmStartEnergyMethods(j, graph_loaded, p, initial_cut= initial_cut, known_max_cut= known_max_cut, epsilon=epsilon, methods=methods, method_params=method_params, do_cold=do_cold, do_incremental=do_incremental, only_optimize_current_p=only_optimize_current_p, labels=labels, use_best_parmas=use_best_params, optimize_epsilon=optimize_epsilon, optimizer=optimizer, foldername=folder_name_final, hamming_distance = hamming_distance)
 
+        [results.append(result) for result in medianResults]
+        [all_results.append(result) for result in rawAllResults]
+
+        # if i >= 2:
+        #     break
+
+    raw_results_file = open(path + "/rawMedian" + ".log", "w")
+    raw_results_file.write("\n".join(results))
+    raw_results_file.close()
+
+    raw_results_file = open(path + "/rawAll" + ".log", "w")
+    raw_results_file.write("\n".join(all_results))
+    raw_results_file.close()
 
 # incrementive Comparison
 print(fc_12_graphs)

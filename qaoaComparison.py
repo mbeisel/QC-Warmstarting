@@ -133,11 +133,12 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initial_cut, known
                                     params_warm_optimized.bestValue[0] = list(params[:p_range[count-1]*2]) + list(params_warm_optimized.bestValue[0])
                             else:
                                 optimization_params = np.append(params, epsilon[method_count])
-                                params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, optimization_params, method=optimizer,
+                                params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, optimization_params, method=optimizer, constraints=cons,
                                                                                    args=(None, graph, initial_cut[0], p, None, initial_cut[1], method, method_params[method_count]), options=optimizer_options)
                             energy_warm, cut_warm, max_cut_chance_warm, better_cut_chance_warm = objectiveFunctionBest(params_warm_optimized.bestValue[0], None, graph, initial_cut[0], p,
                                                                                                                knownMaxCut= known_max_cut,
                                                                                                                showHistogram=False, inputCut=initial_cut[1], method=method, method_params=method_params[method_count])
+                            print(params_warm_optimized.bestValue[0][-1])
                         else:
                             if only_optimize_current_p == True:
                                 params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, params[p_range[count-1]*2:] if p > 1 else params, method=optimizer,
@@ -286,8 +287,7 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initial_cut, known
     # plt.show()
     plt.close()
 
-
-
+    return raw_median_results, raw_all_results
 
 
 
