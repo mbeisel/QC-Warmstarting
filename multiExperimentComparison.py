@@ -25,6 +25,9 @@ fname = f"{path}/rand-initial_cuts-12.txt"
 a_file = open(fname, "r")
 rand_12_graphs = json.loads(a_file.read())
 
+fname = f"graphs/prototype/initial_cuts_mixed.txt"
+a_file = open(fname, "r")
+graph_mix = json.loads(a_file.read())
 
 def comparisonForMultipleGraphs(graphs, folder_add_to_name ='Not-specified', optimizer ='Cobyla', do_cold=True, do_incremental=True, only_optimize_current_p=True):
     time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -44,8 +47,8 @@ def comparisonForMultipleGraphs(graphs, folder_add_to_name ='Not-specified', opt
         cuts_loaded = GraphStorage.loadGWcuts(graph[1])
 
         initial_cut = cuts_loaded[graph[2]]
-        method_params = [None, None]
-        methods= [ None, "greedy"]
+        method_params = [None, (0.05,), (5,) if len(initial_cut[0]) == 12 else (2,), None, None]
+        methods= [ None, "CVaR", "Gibbs", "greedy", "EE-I"]
         labels = [ r"$F_{EE}$", r"$F_{Greedy}$"]
         # methods = [None, "CVaR", "Gibbs", "Greedy", "ee-i"]
         # method_params = [None, (0.05,), (5,), None, None]
@@ -56,14 +59,13 @@ def comparisonForMultipleGraphs(graphs, folder_add_to_name ='Not-specified', opt
         do_incremental = do_incremental
         only_optimize_current_p = only_optimize_current_p
         use_best_params = False  #requires doIncremental = True
-        optimize_epsilon = False
+        optimize_epsilon = True
         j = 20
         p = [0,1,2,3]
         optimizer = optimizer
         folder_name_final = foldername + '/' + str(i)
-        hamming_distance = graph[4]
 
-        medianResults, rawAllResults = compareWarmStartEnergyMethods(j, graph_loaded, p, initial_cut= initial_cut, known_max_cut= known_max_cut, epsilon=epsilon, methods=methods, method_params=method_params, do_cold=do_cold, do_incremental=do_incremental, only_optimize_current_p=only_optimize_current_p, labels=labels, use_best_parmas=use_best_params, optimize_epsilon=optimize_epsilon, optimizer=optimizer, foldername=folder_name_final, hamming_distance = hamming_distance)
+        medianResults, rawAllResults = compareWarmStartEnergyMethods(j, graph_loaded, p, initial_cut= initial_cut, known_max_cut= known_max_cut, epsilon=epsilon, methods=methods, method_params=method_params, do_cold=do_cold, do_incremental=do_incremental, only_optimize_current_p=only_optimize_current_p, labels=labels, use_best_parmas=use_best_params, optimize_epsilon=optimize_epsilon, optimizer=optimizer, foldername=folder_name_final)
 
         [results.append(result) for result in medianResults]
         [all_results.append(result) for result in rawAllResults]
@@ -80,8 +82,8 @@ def comparisonForMultipleGraphs(graphs, folder_add_to_name ='Not-specified', opt
     raw_results_file.close()
 
 # incrementive Comparison
-print(fc_12_graphs)
-comparisonForMultipleGraphs(fc_12_graphs, 'fc', do_incremental=True, only_optimize_current_p=True)
+print(graph_mix)
+comparisonForMultipleGraphs(graph_mix, 'mixed', do_cold=False, do_incremental=True, only_optimize_current_p=True)
 
 
 #optimizerComparison
