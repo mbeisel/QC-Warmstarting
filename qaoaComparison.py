@@ -72,7 +72,13 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initial_cut, known
                         else:
                             for e in range(p_range[count-1]*2):
                                 params_cold[e] = best_params_for_pcold[count-1][1][e]
-                    if only_optimize_current_p == True:
+                    if p == 0:
+                        params_cold_optimized = type('Fake_Optimization', (), {})()
+                        params_cold_optimized.bestValue = [None]
+                        params_cold_optimized.bestValue[0] = []
+                        params_cold_optimized.optimizationPath = []
+                        params_cold_optimized.optimizationTime = 0
+                    elif only_optimize_current_p == True:
                         params_cold_optimized = MinimizeWrapper().minimize(objectiveFunction, params_cold[p_range[count-1]*2:] if p > 1 else params_cold, method=optimizer,
                                                          args=(None,graph, None, p, list(params_cold[:p_range[count-1]*2]) if p > 1 else None), options=optimizer_options)
                         if p > 1:
@@ -140,7 +146,13 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initial_cut, known
                                                                                                                showHistogram=False, inputCut=initial_cut[1], method=method, method_params=method_params[method_count])
                             print(params_warm_optimized.bestValue[0][-1])
                         else:
-                            if only_optimize_current_p == True:
+                            if p == 0:
+                                params_warm_optimized = type('Fake_Optimization', (), {})()
+                                params_warm_optimized.bestValue = [None]
+                                params_warm_optimized.bestValue[0] = []
+                                params_warm_optimized.optimizationPath = []
+                                params_warm_optimized.optimizationTime = 0
+                            elif only_optimize_current_p == True:
                                 params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, params[p_range[count-1]*2:] if p > 1 else params, method=optimizer,
                                                                                    args=(epsilon[method_count], graph, initial_cut[0], p, list(params[:p_range[count - 1] * 2]) if p > 1 else None, initial_cut[1], method, method_params[method_count]), options=optimizer_options)
                                 if p > 1:
