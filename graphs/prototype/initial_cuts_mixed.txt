@@ -1,0 +1,8 @@
+[
+["graphs/prototype/3r-12-graph.txt", "graphs/prototype/3r-12-cuts.txt", 15],
+["graphs/prototype/rand-12-graph.txt", "graphs/prototype/rand-12-cuts.txt", 9],
+["graphs/prototype/fc-12-graph.txt", "graphs/prototype/fc-12-cuts.txt", 12],
+["graphs/prototype/3r-24-graph.txt", "graphs/prototype/3r-24-cuts.txt", 3],
+["graphs/prototype/rand-24-graph.txt", "graphs/prototype/rand-24-cuts.txt", 3],
+["graphs/prototype/fc-24-graph.txt", "graphs/prototype/fc-24-cuts.txt", 7]
+]
