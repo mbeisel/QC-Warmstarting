@@ -371,7 +371,7 @@ p = [0,1,2]
 optimizer = 'Cobyla'
 hamming_distance = None
 
-compareWarmStartEnergyMethods(j, graph_loaded, p, initial_cut= initial_cut, known_max_cut= known_max_cut, epsilon=epsilon, methods=methods, method_params=method_params, do_cold=do_cold, do_incremental=do_incremental, only_optimize_current_p=only_optimize_current_p, labels=labels, use_best_parmas=use_best_params, optimize_epsilon=optimize_epsilon, only_optimize_epsilon_at_p1=only_optimize_epsilon_at_p1, optimizer=optimizer, hamming_distance=hamming_distance)
+#compareWarmStartEnergyMethods(j, graph_loaded, p, initial_cut= initial_cut, known_max_cut= known_max_cut, epsilon=epsilon, methods=methods, method_params=method_params, do_cold=do_cold, do_incremental=do_incremental, only_optimize_current_p=only_optimize_current_p, labels=labels, use_best_parmas=use_best_params, optimize_epsilon=optimize_epsilon, only_optimize_epsilon_at_p1=only_optimize_epsilon_at_p1, optimizer=optimizer, hamming_distance=hamming_distance)
 
 
 

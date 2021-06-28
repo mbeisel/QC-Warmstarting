@@ -50,6 +50,7 @@ def comparisonForMultipleGraphs(graphs, folder_add_to_name ='Not-specified', opt
         method_params = [None, (0.05,), (5,) if len(initial_cut[0]) == 12 else (2,), None, None]
         methods= [ None, "CVaR", "Gibbs", "greedy", "EE-I"]
         labels = [ r"$F_{EE}$", r"$F_{Greedy}$"]
+        labels = [r"$F_{EE}$", r"$F_{0.05,CVar}$", r"$F_{5,Gibbs}$" if method_params[2][0] == 5 else r"$F_{2,Gibbs}$", r"$F_{Greedy}$", r"$F_{EE-I}$"]
         # methods = [None, "CVaR", "Gibbs", "Greedy", "ee-i"]
         # method_params = [None, (0.05,), (5,), None, None]
         # labels = [r"$F_{EE}$", r"$F_{0.05,CVar}$", r"$F_{5,Gibbs}$", r"$F_{Greedy}$", r"$F_{EE-I}$"]
@@ -60,12 +61,13 @@ def comparisonForMultipleGraphs(graphs, folder_add_to_name ='Not-specified', opt
         only_optimize_current_p = only_optimize_current_p
         use_best_params = False  #requires doIncremental = True
         optimize_epsilon = True
+        only_optimize_epsilon_at_p1 = True
         j = 20
         p = [0,1,2,3]
         optimizer = optimizer
         folder_name_final = foldername + '/' + str(i)
 
-        medianResults, rawAllResults = compareWarmStartEnergyMethods(j, graph_loaded, p, initial_cut= initial_cut, known_max_cut= known_max_cut, epsilon=epsilon, methods=methods, method_params=method_params, do_cold=do_cold, do_incremental=do_incremental, only_optimize_current_p=only_optimize_current_p, labels=labels, use_best_parmas=use_best_params, optimize_epsilon=optimize_epsilon, optimizer=optimizer, foldername=folder_name_final)
+        medianResults, rawAllResults = compareWarmStartEnergyMethods(j, graph_loaded, p, initial_cut= initial_cut, known_max_cut= known_max_cut, epsilon=epsilon, methods=methods, method_params=method_params, do_cold=do_cold, do_incremental=do_incremental, only_optimize_current_p=only_optimize_current_p, labels=labels, use_best_parmas=use_best_params, optimize_epsilon=optimize_epsilon, optimizer=optimizer, foldername=folder_name_final, only_optimize_epsilon_at_p1=only_optimize_epsilon_at_p1)
 
         [results.append(result) for result in medianResults]
         [all_results.append(result) for result in rawAllResults]
