@@ -15,7 +15,7 @@ from pathlib import Path
 
 
 
-def compareWarmStartEnergyMethods(iterations, graph, p_range, initial_cut, known_max_cut = None, only_optimize_current_p = False, epsilon =0.25, do_cold = False, methods = None, do_incremental=True, method_params = None, labels = None, use_best_parmas = False, optimize_epsilon=False, optimizer='Cobyla', foldername=None, hamming_distance =None):
+def compareWarmStartEnergyMethods(iterations, graph, p_range, initial_cut, known_max_cut = None, only_optimize_current_p = False, epsilon =0.25, do_cold = False, methods = None, do_incremental=True, method_params = None, labels = None, use_best_parmas = False, optimize_epsilon=False, only_optimize_epsilon_at_p1 = True, optimizer='Cobyla', foldername=None, hamming_distance =None):
     #clear cutcost list from maxcutQaoa
     cut_costs.clear()
 
@@ -38,6 +38,9 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initial_cut, known
     raw_all_results = ["doincremental:{}; onlyOptimizeCurrentP:{}; useBestParams:{}; epsilon:{}; initialCut:{}; Hamming_distance: {}; optimizer: {}".format(do_incremental, only_optimize_current_p, use_best_params, epsilon, initial_cut, hamming_distance or -1, optimizer)]
     warm_all_method_params = [[[] for i in range(iterations)] for i in range(len(methods))]
     cold_all_params = [[] for i in range(iterations)]
+    if type(epsilon) is float or type(epsilon) == int:
+        epsilon = [epsilon] * len(methods)
+    epsilon = [[eps] * iterations for eps in epsilon]
 
 
 
@@ -109,8 +112,7 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initial_cut, known
 
                 energy_warm_list, cut_warm_list, max_cut_chance_warm_list, better_cut_chance_warm_list, params_warm_list = [[] for i in range(len(methods))], [[] for i in range(len(methods))], [[] for i in range(len(methods))], [[] for i in range(len(methods))],[[] for i in range(len(methods))]
 
-                if type(epsilon) is float or type(epsilon) == int:
-                    epsilon = [epsilon] * len(methods)
+
                 for method_count, method in enumerate(methods):
                     # bestCut = epsilonFunction(initialCut[0], epsilon=epsilon[methodCount])
                     params = copy(params_raw)
@@ -126,25 +128,25 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initial_cut, known
 
                     #optimize k times with the same startvalues and take the best
                     for k in range(1):
-                        cons = []
-                        cons.append({'type': 'ineq', 'fun': lambda x: x[-1] - 0})
-                        cons.append({'type': 'ineq', 'fun': lambda x: 0.5 - x[-1]})
-
-                        if optimize_epsilon == True:
+                        if p != 0 and optimize_epsilon is True and (only_optimize_epsilon_at_p1 is False or p <= 1):
+                            cons = []
+                            cons.append({'type': 'ineq', 'fun': lambda x: x[-1] - 0})
+                            cons.append({'type': 'ineq', 'fun': lambda x: 0.5 - x[-1]})
                             if only_optimize_current_p == True:
-                                optimization_params = np.append(params[p_range[count-1]*2:] if p > 1 else params, epsilon[method_count])
+                                optimization_params = np.append(params[p_range[count-1]*2:] if p > 1 else params, epsilon[method_count][j])
                                 params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, optimization_params, method=optimizer, constraints=cons,
                                                                                    args=(None, graph, initial_cut[0], p, list(params[:p_range[count - 1] * 2]) if p > 1 else None, initial_cut[1], method, method_params[method_count]), options=optimizer_options)
                                 if p > 1:
                                     params_warm_optimized.bestValue[0] = list(params[:p_range[count-1]*2]) + list(params_warm_optimized.bestValue[0])
                             else:
-                                optimization_params = np.append(params, epsilon[method_count])
+                                optimization_params = np.append(params, epsilon[method_count][j])
                                 params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, optimization_params, method=optimizer, constraints=cons,
                                                                                    args=(None, graph, initial_cut[0], p, None, initial_cut[1], method, method_params[method_count]), options=optimizer_options)
                             energy_warm, cut_warm, max_cut_chance_warm, better_cut_chance_warm = objectiveFunctionBest(params_warm_optimized.bestValue[0], None, graph, initial_cut[0], p,
                                                                                                                knownMaxCut= known_max_cut,
                                                                                                                showHistogram=False, inputCut=initial_cut[1], method=method, method_params=method_params[method_count])
-                            print(params_warm_optimized.bestValue[0][-1])
+                            epsilon[method_count][j]=params_warm_optimized.bestValue[0][-1]
+
                         else:
                             if p == 0:
                                 params_warm_optimized = type('Fake_Optimization', (), {})()
@@ -154,14 +156,14 @@ def compareWarmStartEnergyMethods(iterations, graph, p_range, initial_cut, known
                                 params_warm_optimized.optimizationTime = 0
                             elif only_optimize_current_p == True:
                                 params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, params[p_range[count-1]*2:] if p > 1 else params, method=optimizer,
-                                                                                   args=(epsilon[method_count], graph, initial_cut[0], p, list(params[:p_range[count - 1] * 2]) if p > 1 else None, initial_cut[1], method, method_params[method_count]), options=optimizer_options)
+                                                                                   args=(epsilon[method_count][j], graph, initial_cut[0], p, list(params[:p_range[count - 1] * 2]) if p > 1 else None, initial_cut[1], method, method_params[method_count]), options=optimizer_options)
                                 if p > 1:
                                     params_warm_optimized.bestValue[0] = list(params[:p_range[count-1]*2]) + list(params_warm_optimized.bestValue[0])
                             else:
                                 params_warm_optimized = MinimizeWrapper().minimize(objectiveFunction, params, method=optimizer,
-                                                                                   args=(epsilon[method_count], graph, initial_cut[0], p, None, initial_cut[1], method, method_params[method_count]), options=optimizer_options)
+                                                                                   args=(epsilon[method_count][j], graph, initial_cut[0], p, None, initial_cut[1], method, method_params[method_count]), options=optimizer_options)
 
-                            energy_warm, cut_warm, max_cut_chance_warm, better_cut_chance_warm = objectiveFunctionBest(params_warm_optimized.bestValue[0], epsilon[method_count], graph, initial_cut[0], p,
+                            energy_warm, cut_warm, max_cut_chance_warm, better_cut_chance_warm = objectiveFunctionBest(params_warm_optimized.bestValue[0], epsilon[method_count][j], graph, initial_cut[0], p,
                                                                                                                knownMaxCut= known_max_cut,
                                                                                                                showHistogram=False, inputCut=initial_cut[1], method=method, method_params=method_params[method_count])
                         if best_params_for_p[method_count][count][0] < energy_warm:
@@ -362,13 +364,14 @@ do_cold = True
 do_incremental = True
 only_optimize_current_p = True
 use_best_params = False  #requires doIncremental = True
-optimize_epsilon = False
-j = 10
-p = [1,2,3]
+optimize_epsilon = True
+only_optimize_epsilon_at_p1 = False
+j = 2
+p = [0,1,2]
 optimizer = 'Cobyla'
 hamming_distance = None
 
-# compareWarmStartEnergyMethods(j, graph_loaded, p, initial_cut= initial_cut, known_max_cut= known_max_cut, epsilon=epsilon, methods=methods, method_params=method_params, do_cold=do_cold, do_incremental=do_incremental, only_optimize_current_p=only_optimize_current_p, labels=labels, use_best_parmas=use_best_params, optimize_epsilon=optimize_epsilon, optimizer=optimizer, hamming_distance=hamming_distance)
+compareWarmStartEnergyMethods(j, graph_loaded, p, initial_cut= initial_cut, known_max_cut= known_max_cut, epsilon=epsilon, methods=methods, method_params=method_params, do_cold=do_cold, do_incremental=do_incremental, only_optimize_current_p=only_optimize_current_p, labels=labels, use_best_parmas=use_best_params, optimize_epsilon=optimize_epsilon, only_optimize_epsilon_at_p1=only_optimize_epsilon_at_p1, optimizer=optimizer, hamming_distance=hamming_distance)
 
 
 
